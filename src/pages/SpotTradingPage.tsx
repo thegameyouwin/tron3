@@ -1,4 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import DemoModeBanner from "@/components/DemoModeBanner";
+import DemoModeToggle from "@/components/DemoModeToggle";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -105,7 +107,7 @@ const SpotTradingPage = () => {
   const { prices, getSymbol } = useCryptoPrices(10000);
   const { getBalance, fetchWallets, loading: walletsLoading } = useWallets();
   const { orders, placeOrder, loading: ordersLoading } = useOrders(selectedCoin);
-  const currency = useAppStore((s) => s.currency);
+  const { currency, demoMode, demoBalance, setDemoBalance } = useAppStore();
   const sym = currency === "inr" ? "₹" : "$";
 
   const selectedPrice = prices.find(p => p.id === selectedCoin);
@@ -123,8 +125,10 @@ const SpotTradingPage = () => {
 
   const total = (Number(amount) || 0) * effectivePrice;
 
-  const usdtBalance = getBalance("usdt");
-  const coinBalance = getBalance(selectedCoin);
+  const liveUsdtBalance = getBalance("usdt");
+  const liveCoinBalance = getBalance(selectedCoin);
+  const usdtBalance = demoMode ? demoBalance : liveUsdtBalance;
+  const coinBalance = demoMode ? 1.0 : liveCoinBalance; // Demo gives 1 unit of each coin
   const baseSymbol = swapped ? "USDT" : symbol;
   const quoteSymbol = swapped ? symbol : "USDT";
 
@@ -293,17 +297,29 @@ const SpotTradingPage = () => {
 
     setSubmitting(true);
     try {
-      await placeOrder({
-        crypto_id: selectedCoin,
-        side,
-        type: orderType,
-        price: effectivePrice,
-        amount: amt,
-      });
-      await fetchWallets();
-      toast.success(
-        `${side === "buy" ? "Bought" : "Sold"} ${amt.toFixed(8)} ${symbol} at ${sym}${effectivePrice.toLocaleString()}`
-      );
+      if (demoMode) {
+        // Demo mode: just simulate
+        if (side === "buy") {
+          setDemoBalance(demoBalance - total);
+        } else {
+          setDemoBalance(demoBalance + total);
+        }
+        toast.success(
+          `[DEMO] ${side === "buy" ? "Bought" : "Sold"} ${amt.toFixed(8)} ${symbol} at ${sym}${effectivePrice.toLocaleString()}`
+        );
+      } else {
+        await placeOrder({
+          crypto_id: selectedCoin,
+          side,
+          type: orderType,
+          price: effectivePrice,
+          amount: amt,
+        });
+        await fetchWallets();
+        toast.success(
+          `${side === "buy" ? "Bought" : "Sold"} ${amt.toFixed(8)} ${symbol} at ${sym}${effectivePrice.toLocaleString()}`
+        );
+      }
       setAmount("");
       if (orderType === "limit") setLimitPrice("");
     } catch (err: any) {
@@ -315,10 +331,12 @@ const SpotTradingPage = () => {
 
   return (
     <DashboardLayout>
+      <DemoModeBanner />
       <div className="p-0">
         {/* Pair selector header */}
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container flex flex-wrap items-center gap-3 py-2 px-4">
+            <DemoModeToggle />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setPairDropdownOpen(!pairDropdownOpen)}

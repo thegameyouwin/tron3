@@ -1,5 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import BotAnalyticsView from "@/components/BotAnalyticsView";
+import DemoModeBanner from "@/components/DemoModeBanner";
+import DemoModeToggle from "@/components/DemoModeToggle";
 import { Bot, Search, Zap, Lock, Copy, Users, RotateCw, RefreshCw, Clock, TrendingUp, Activity, BarChart3, ChevronLeft, ChevronDown, ArrowLeft, Info, MessageSquare, Send, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
+import { useAppStore } from "@/stores/useAppStore";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 // List of tradeable pairs (same as SpotTradingPage)
@@ -86,6 +89,7 @@ const BotsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { demoMode, demoBalance, setDemoBalance } = useAppStore();
 
   const [mainTab, setMainTab] = useState<"popular" | "ai">("popular");
   const [searchQuery, setSearchQuery] = useState("");
@@ -312,17 +316,25 @@ const BotsPage = () => {
   const stakeBot = useMutation({
     mutationFn: async ({ bot, amount }: { bot: any; amount: number }) => {
       if (!user) throw new Error("Not authenticated");
-      if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
-      if (amount > usdtBalance) throw new Error(`Insufficient balance. You have $${usdtBalance.toFixed(2)} USDT`);
+      if (demoMode) {
+        if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
+        if (amount > demoBalance) throw new Error(`Insufficient demo balance. You have $${demoBalance.toFixed(2)} USDT`);
+      } else {
+        if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
+        if (amount > usdtBalance) throw new Error(`Insufficient balance. You have $${usdtBalance.toFixed(2)} USDT`);
+      }
 
-      const walletId = usdtWallet?.id;
-      if (!walletId) throw new Error("No USDT wallet found. Please deposit first.");
-
-      const { error: walletErr } = await supabase
-        .from("wallets")
-        .update({ balance: usdtBalance - amount })
-        .eq("id", walletId);
-      if (walletErr) throw walletErr;
+      if (demoMode) {
+        setDemoBalance(demoBalance - amount);
+      } else {
+        const walletId = usdtWallet?.id;
+        if (!walletId) throw new Error("No USDT wallet found. Please deposit first.");
+        const { error: walletErr } = await supabase
+          .from("wallets")
+          .update({ balance: usdtBalance - amount })
+          .eq("id", walletId);
+        if (walletErr) throw walletErr;
+      }
 
       const { error } = await supabase.from("trading_bots").insert({
         name: bot.name,
@@ -788,8 +800,9 @@ const BotsPage = () => {
 
   return (
     <DashboardLayout>
+      <DemoModeBanner />
       <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Top nav bar - horizontal scrollable on small screens */}
+        {/* Top nav bar */}
         <div className="flex items-center gap-4 px-4 py-2 border-b border-border bg-card text-sm overflow-x-auto whitespace-nowrap">
           <Link to="/dashboard" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" /> Dashboard
@@ -797,6 +810,7 @@ const BotsPage = () => {
           <div className="flex items-center gap-1 text-foreground font-semibold">
             <Bot className="h-4 w-4" /> Trading Bots
           </div>
+          <DemoModeToggle />
           {["Spot Grid", "Futures Grid", "DCA", "Arbitrage", "TWAP"].map(s => (
             <button key={s} className={`text-xs whitespace-nowrap transition-colors ${strategyFilter === s ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setStrategyFilter(strategyFilter === s ? "All" : s)}>{s}</button>
           ))}
@@ -1014,7 +1028,15 @@ const BotsPage = () => {
           {/* Right sidebar - hidden on mobile, visible on md+ */}
           <div className="hidden md:flex w-[320px] md:w-[360px] border-l border-border bg-card flex-col overflow-hidden shrink-0">
             {viewingRunningBot ? (
-              <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} />
+              <BotAnalyticsView
+                bot={viewingRunningBot}
+                onBack={() => setViewingRunningBot(null)}
+                onUnstake={(bot) => {
+                  unstakeBot.mutate(bot);
+                  setViewingRunningBot(null);
+                }}
+                unstaking={unstakeBot.isPending}
+              />
             ) : selectedBot ? (
               <BotDetailPanel bot={selectedBot} />
             ) : (
