@@ -800,8 +800,9 @@ const BotsPage = () => {
 
   return (
     <DashboardLayout>
+      <DemoModeBanner />
       <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Top nav bar - horizontal scrollable on small screens */}
+        {/* Top nav bar */}
         <div className="flex items-center gap-4 px-4 py-2 border-b border-border bg-card text-sm overflow-x-auto whitespace-nowrap">
           <Link to="/dashboard" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" /> Dashboard
@@ -809,6 +810,7 @@ const BotsPage = () => {
           <div className="flex items-center gap-1 text-foreground font-semibold">
             <Bot className="h-4 w-4" /> Trading Bots
           </div>
+          <DemoModeToggle />
           {["Spot Grid", "Futures Grid", "DCA", "Arbitrage", "TWAP"].map(s => (
             <button key={s} className={`text-xs whitespace-nowrap transition-colors ${strategyFilter === s ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setStrategyFilter(strategyFilter === s ? "All" : s)}>{s}</button>
           ))}
@@ -1026,8 +1028,15 @@ const BotsPage = () => {
           {/* Right sidebar - hidden on mobile, visible on md+ */}
           <div className="hidden md:flex w-[320px] md:w-[360px] border-l border-border bg-card flex-col overflow-hidden shrink-0">
             {viewingRunningBot ? (
-              <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} />
-            ) : selectedBot ? (
+              <BotAnalyticsView
+                bot={viewingRunningBot}
+                onBack={() => setViewingRunningBot(null)}
+                onUnstake={(bot) => {
+                  unstakeBot.mutate(bot);
+                  setViewingRunningBot(null);
+                }}
+                unstaking={unstakeBot.isPending}
+              />
               <BotDetailPanel bot={selectedBot} />
             ) : (
               <>
