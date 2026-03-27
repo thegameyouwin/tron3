@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import BotAnalyticsView from "@/components/BotAnalyticsView";
 import { Bot, Search, Zap, Lock, Copy, Users, RotateCw, RefreshCw, Clock, TrendingUp, Activity, BarChart3, ChevronLeft, ChevronDown, ArrowLeft, Info, MessageSquare, Send, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +93,7 @@ const BotsPage = () => {
   const [strategyFilter, setStrategyFilter] = useState("All");
   const [bottomTab, setBottomTab] = useState<"running" | "history" | "pnl">("running");
   const [selectedBot, setSelectedBot] = useState<any>(null);
+  const [viewingRunningBot, setViewingRunningBot] = useState<any>(null);
   const [stakeAmount, setStakeAmount] = useState("");
   const [showParams, setShowParams] = useState(false);
   const [pairDropdownOpen, setPairDropdownOpen] = useState(false);
