@@ -1,4 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import DemoModeBanner from "@/components/DemoModeBanner";
+import DemoModeToggle from "@/components/DemoModeToggle";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
