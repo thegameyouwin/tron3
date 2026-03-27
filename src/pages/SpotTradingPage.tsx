@@ -331,10 +331,12 @@ const SpotTradingPage = () => {
 
   return (
     <DashboardLayout>
+      <DemoModeBanner />
       <div className="p-0">
         {/* Pair selector header */}
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container flex flex-wrap items-center gap-3 py-2 px-4">
+            <DemoModeToggle />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setPairDropdownOpen(!pairDropdownOpen)}
