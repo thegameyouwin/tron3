@@ -316,10 +316,13 @@ const BotsPage = () => {
   const stakeBot = useMutation({
     mutationFn: async ({ bot, amount }: { bot: any; amount: number }) => {
       if (!user) throw new Error("Not authenticated");
-      if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
-      if (amount > usdtBalance) throw new Error(`Insufficient balance. You have $${usdtBalance.toFixed(2)} USDT`);
-
-      const walletId = usdtWallet?.id;
+      if (demoMode) {
+        if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
+        if (amount > demoBalance) throw new Error(`Insufficient demo balance. You have $${demoBalance.toFixed(2)} USDT`);
+      } else {
+        if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
+        if (amount > usdtBalance) throw new Error(`Insufficient balance. You have $${usdtBalance.toFixed(2)} USDT`);
+      }
       if (!walletId) throw new Error("No USDT wallet found. Please deposit first.");
 
       const { error: walletErr } = await supabase
