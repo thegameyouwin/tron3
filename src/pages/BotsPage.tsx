@@ -89,6 +89,7 @@ const BotsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { demoMode, demoBalance, setDemoBalance } = useAppStore();
 
   const [mainTab, setMainTab] = useState<"popular" | "ai">("popular");
   const [searchQuery, setSearchQuery] = useState("");
