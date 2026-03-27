@@ -1037,6 +1037,7 @@ const BotsPage = () => {
                 }}
                 unstaking={unstakeBot.isPending}
               />
+            ) : selectedBot ? (
               <BotDetailPanel bot={selectedBot} />
             ) : (
               <>
