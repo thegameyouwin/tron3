@@ -5,10 +5,16 @@ interface AppState {
   currency: "usd" | "inr";
   language: string;
   darkMode: boolean;
+  demoMode: boolean;
+  demoBalance: number;
   setCurrency: (c: "usd" | "inr") => void;
   setLanguage: (l: string) => void;
   toggleDarkMode: () => void;
+  toggleDemoMode: () => void;
+  setDemoBalance: (b: number) => void;
 }
+
+const DEMO_STARTING_BALANCE = 10000;
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -16,6 +22,8 @@ export const useAppStore = create<AppState>()(
       currency: "usd",
       language: "en",
       darkMode: true,
+      demoMode: false,
+      demoBalance: DEMO_STARTING_BALANCE,
       setCurrency: (currency) => set({ currency }),
       setLanguage: (language) => {
         document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
@@ -29,6 +37,12 @@ export const useAppStore = create<AppState>()(
           else document.documentElement.classList.remove("dark");
           return { darkMode: next };
         }),
+      toggleDemoMode: () =>
+        set((s) => ({
+          demoMode: !s.demoMode,
+          demoBalance: !s.demoMode ? DEMO_STARTING_BALANCE : s.demoBalance,
+        })),
+      setDemoBalance: (demoBalance) => set({ demoBalance }),
     }),
     {
       name: "tronnlix-app-store",
