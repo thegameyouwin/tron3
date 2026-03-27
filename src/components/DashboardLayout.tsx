@@ -5,6 +5,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useAppStore } from "@/stores/useAppStore";
 import { useWallets } from "@/hooks/useWallets";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { useProfile } from "@/hooks/useProfile";
 import TronnlixLogo from "@/components/TronnlixLogo";
 import LanguageSelector from "@/components/LanguageSelector";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   LayoutDashboard, Wallet, Banknote, Users, TrendingUp, CandlestickChart,
   Bot, Coins, Gift, ArrowRightLeft, ArrowDownToLine, History, CreditCard,
   ShieldCheck, Lock, HelpCircle, LogOut, Sun, Moon, Shield, ChevronLeft,
-  ChevronRight, Menu, X
+  ChevronRight, Menu, X, User
 } from "lucide-react";
 
 const sections = [
@@ -57,11 +58,12 @@ const sections = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { darkMode, toggleDarkMode } = useAppStore();
   const { wallets } = useWallets();
   const { prices } = useCryptoPrices();
+  const { profile } = useProfile();
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
