@@ -320,7 +320,6 @@ const SpotTradingPage = () => {
           `${side === "buy" ? "Bought" : "Sold"} ${amt.toFixed(8)} ${symbol} at ${sym}${effectivePrice.toLocaleString()}`
         );
       }
-      );
       setAmount("");
       if (orderType === "limit") setLimitPrice("");
     } catch (err: any) {
