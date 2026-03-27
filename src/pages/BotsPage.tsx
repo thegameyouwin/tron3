@@ -323,13 +323,18 @@ const BotsPage = () => {
         if (amount < bot.min_stake) throw new Error(`Minimum stake is $${bot.min_stake} USDT`);
         if (amount > usdtBalance) throw new Error(`Insufficient balance. You have $${usdtBalance.toFixed(2)} USDT`);
       }
-      if (!walletId) throw new Error("No USDT wallet found. Please deposit first.");
 
-      const { error: walletErr } = await supabase
-        .from("wallets")
-        .update({ balance: usdtBalance - amount })
-        .eq("id", walletId);
-      if (walletErr) throw walletErr;
+      if (demoMode) {
+        setDemoBalance(demoBalance - amount);
+      } else {
+        const walletId = usdtWallet?.id;
+        if (!walletId) throw new Error("No USDT wallet found. Please deposit first.");
+        const { error: walletErr } = await supabase
+          .from("wallets")
+          .update({ balance: usdtBalance - amount })
+          .eq("id", walletId);
+        if (walletErr) throw walletErr;
+      }
 
       const { error } = await supabase.from("trading_bots").insert({
         name: bot.name,
