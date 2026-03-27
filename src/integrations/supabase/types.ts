@@ -14,27 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admins: {
-        Row: {
-          account_id: string | null
-          created_at: string | null
-          id: string
-          role: string | null
-        }
-        Insert: {
-          account_id?: string | null
-          created_at?: string | null
-          id?: string
-          role?: string | null
-        }
-        Update: {
-          account_id?: string | null
-          created_at?: string | null
-          id?: string
-          role?: string | null
-        }
-        Relationships: []
-      }
       bot_trades: {
         Row: {
           amount: number
@@ -42,6 +21,7 @@ export type Database = {
           created_at: string
           crypto_id: string
           id: string
+          pnl: number | null
           price: number
           side: string
           total: number
@@ -52,9 +32,10 @@ export type Database = {
           created_at?: string
           crypto_id: string
           id?: string
+          pnl?: number | null
           price: number
           side: string
-          total: number
+          total?: number
         }
         Update: {
           amount?: number
@@ -62,6 +43,7 @@ export type Database = {
           created_at?: string
           crypto_id?: string
           id?: string
+          pnl?: number | null
           price?: number
           side?: string
           total?: number
@@ -108,7 +90,7 @@ export type Database = {
           crypto_id: string
           expires_at: string
           id: string
-          network: string
+          network: string | null
           status: string
           tx_hash: string | null
           updated_at: string
@@ -121,7 +103,7 @@ export type Database = {
           crypto_id: string
           expires_at?: string
           id?: string
-          network?: string
+          network?: string | null
           status?: string
           tx_hash?: string | null
           updated_at?: string
@@ -134,9 +116,42 @@ export type Database = {
           crypto_id?: string
           expires_at?: string
           id?: string
-          network?: string
+          network?: string | null
           status?: string
           tx_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kyc_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          file_url: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -180,13 +195,15 @@ export type Database = {
           amount: number
           created_at: string
           crypto_id: string
-          filled_amount: number
+          filled: number
           id: string
-          order_type: Database["public"]["Enums"]["order_type"]
-          price: number
-          side: Database["public"]["Enums"]["order_side"]
-          status: Database["public"]["Enums"]["order_status"]
+          is_futures: boolean | null
+          leverage: number | null
+          price: number | null
+          side: string
+          status: string
           total: number
+          type: string
           updated_at: string
           user_id: string
         }
@@ -194,13 +211,15 @@ export type Database = {
           amount: number
           created_at?: string
           crypto_id: string
-          filled_amount?: number
+          filled?: number
           id?: string
-          order_type?: Database["public"]["Enums"]["order_type"]
-          price: number
-          side: Database["public"]["Enums"]["order_side"]
-          status?: Database["public"]["Enums"]["order_status"]
+          is_futures?: boolean | null
+          leverage?: number | null
+          price?: number | null
+          side: string
+          status?: string
           total?: number
+          type: string
           updated_at?: string
           user_id: string
         }
@@ -208,13 +227,93 @@ export type Database = {
           amount?: number
           created_at?: string
           crypto_id?: string
-          filled_amount?: number
+          filled?: number
           id?: string
-          order_type?: Database["public"]["Enums"]["order_type"]
-          price?: number
-          side?: Database["public"]["Enums"]["order_side"]
-          status?: Database["public"]["Enums"]["order_status"]
+          is_futures?: boolean | null
+          leverage?: number | null
+          price?: number | null
+          side?: string
+          status?: string
           total?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      p2p_listings: {
+        Row: {
+          amount: number
+          created_at: string
+          crypto_id: string
+          id: string
+          max_amount: number | null
+          min_amount: number | null
+          payment_methods: string[] | null
+          price: number
+          side: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          crypto_id: string
+          id?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          payment_methods?: string[] | null
+          price: number
+          side: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          crypto_id?: string
+          id?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          payment_methods?: string[] | null
+          price?: number
+          side?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          is_default: boolean | null
+          label: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_default?: boolean | null
+          label: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -225,10 +324,13 @@ export type Database = {
           avatar_url: string | null
           country: string | null
           created_at: string
-          full_name: string | null
+          display_name: string | null
+          email: string | null
           id: string
+          kyc_status: string | null
           phone: string | null
           referral_code: string | null
+          referred_by: string | null
           updated_at: string
           user_id: string
         }
@@ -236,10 +338,13 @@ export type Database = {
           avatar_url?: string | null
           country?: string | null
           created_at?: string
-          full_name?: string | null
+          display_name?: string | null
+          email?: string | null
           id?: string
+          kyc_status?: string | null
           phone?: string | null
           referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
           user_id: string
         }
@@ -247,95 +352,200 @@ export type Database = {
           avatar_url?: string | null
           country?: string | null
           created_at?: string
-          full_name?: string | null
+          display_name?: string | null
+          email?: string | null
           id?: string
+          kyc_status?: string | null
           phone?: string | null
           referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          bonus_amount: number | null
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          bonus_amount?: number | null
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          bonus_amount?: number | null
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      security_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
       }
       site_settings: {
         Row: {
+          created_at: string
           id: string
           key: string
-          updated_at: string | null
-          updated_by: string | null
-          value: Json
+          updated_at: string
+          value: Json | null
         }
         Insert: {
+          created_at?: string
           id?: string
           key: string
-          updated_at?: string | null
-          updated_by?: string | null
-          value: Json
+          updated_at?: string
+          value?: Json | null
         }
         Update: {
+          created_at?: string
           id?: string
           key?: string
-          updated_at?: string | null
-          updated_by?: string | null
-          value?: Json
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: []
+      }
+      staking: {
+        Row: {
+          amount: number
+          apy: number
+          created_at: string
+          crypto_id: string
+          ends_at: string | null
+          id: string
+          lock_days: number | null
+          rewards_earned: number | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          apy?: number
+          created_at?: string
+          crypto_id: string
+          ends_at?: string | null
+          id?: string
+          lock_days?: number | null
+          rewards_earned?: number | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          apy?: number
+          created_at?: string
+          crypto_id?: string
+          ends_at?: string | null
+          id?: string
+          lock_days?: number | null
+          rewards_earned?: number | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
       trading_bots: {
         Row: {
-          bot_users: number
-          config: Json
+          bot_users: number | null
+          config: Json | null
           created_at: string
           crypto_id: string
-          daily_earn: number
+          daily_earn: number | null
           description: string | null
           id: string
-          is_ai: boolean
-          min_stake: number
+          is_ai: boolean | null
+          min_stake: number | null
           name: string
-          runs: number
+          runs: number | null
           status: string
           strategy: string
-          tier: string
+          tier: string | null
           total_profit: number
           total_trades: number
           updated_at: string
           user_id: string | null
         }
         Insert: {
-          bot_users?: number
-          config?: Json
+          bot_users?: number | null
+          config?: Json | null
           created_at?: string
-          crypto_id: string
-          daily_earn?: number
+          crypto_id?: string
+          daily_earn?: number | null
           description?: string | null
           id?: string
-          is_ai?: boolean
-          min_stake?: number
+          is_ai?: boolean | null
+          min_stake?: number | null
           name: string
-          runs?: number
+          runs?: number | null
           status?: string
           strategy?: string
-          tier?: string
+          tier?: string | null
           total_profit?: number
           total_trades?: number
           updated_at?: string
           user_id?: string | null
         }
         Update: {
-          bot_users?: number
-          config?: Json
+          bot_users?: number | null
+          config?: Json | null
           created_at?: string
           crypto_id?: string
-          daily_earn?: number
+          daily_earn?: number | null
           description?: string | null
           id?: string
-          is_ai?: boolean
-          min_stake?: number
+          is_ai?: boolean | null
+          min_stake?: number | null
           name?: string
-          runs?: number
+          runs?: number | null
           status?: string
           strategy?: string
-          tier?: string
+          tier?: string | null
           total_profit?: number
           total_trades?: number
           updated_at?: string
@@ -349,20 +559,24 @@ export type Database = {
           created_at: string
           crypto_id: string
           id: string
-          status: Database["public"]["Enums"]["transaction_status"]
-          type: Database["public"]["Enums"]["transaction_type"]
+          notes: string | null
+          status: string
+          tx_hash: string | null
+          type: string
           updated_at: string
           usd_amount: number
           user_id: string
           wallet_address: string | null
         }
         Insert: {
-          amount: number
+          amount?: number
           created_at?: string
           crypto_id: string
           id?: string
-          status?: Database["public"]["Enums"]["transaction_status"]
-          type: Database["public"]["Enums"]["transaction_type"]
+          notes?: string | null
+          status?: string
+          tx_hash?: string | null
+          type: string
           updated_at?: string
           usd_amount?: number
           user_id: string
@@ -373,8 +587,10 @@ export type Database = {
           created_at?: string
           crypto_id?: string
           id?: string
-          status?: Database["public"]["Enums"]["transaction_status"]
-          type?: Database["public"]["Enums"]["transaction_type"]
+          notes?: string | null
+          status?: string
+          tx_hash?: string | null
+          type?: string
           updated_at?: string
           usd_amount?: number
           user_id?: string
@@ -384,16 +600,19 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
@@ -404,33 +623,33 @@ export type Database = {
         Row: {
           browser: string | null
           created_at: string
-          device: string
+          device: string | null
           id: string
           ip_address: string | null
           is_current: boolean | null
-          last_active: string
+          last_active: string | null
           os: string | null
           user_id: string
         }
         Insert: {
           browser?: string | null
           created_at?: string
-          device: string
+          device?: string | null
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
-          last_active?: string
+          last_active?: string | null
           os?: string | null
           user_id: string
         }
         Update: {
           browser?: string | null
           created_at?: string
-          device?: string
+          device?: string | null
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
-          last_active?: string
+          last_active?: string | null
           os?: string | null
           user_id?: string
         }
@@ -468,10 +687,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_ledger_balance: {
-        Args: { p_crypto_id: string; p_user_id: string }
-        Returns: number
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -482,11 +697,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      order_side: "buy" | "sell"
-      order_status: "open" | "filled" | "cancelled"
-      order_type: "market" | "limit"
-      transaction_status: "pending" | "completed" | "rejected"
-      transaction_type: "deposit" | "withdrawal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -615,11 +825,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      order_side: ["buy", "sell"],
-      order_status: ["open", "filled", "cancelled"],
-      order_type: ["market", "limit"],
-      transaction_status: ["pending", "completed", "rejected"],
-      transaction_type: ["deposit", "withdrawal"],
     },
   },
 } as const

@@ -152,7 +152,7 @@ const Dashboard = () => {
       await placeOrder({
         crypto_id: quickTradeCoin,
         side: quickTradeSide,
-        order_type: "market",
+        type: "market",
         price: quickTradeCoinPrice,
         amount: Number(quickTradeAmount),
       });
@@ -394,7 +394,7 @@ const Dashboard = () => {
                   <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                     <div>
                       <p className="text-sm font-medium text-foreground">{getSymbol(order.crypto_id)}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{order.side} • {order.order_type}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{order.side} • {order.type}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">{order.amount.toFixed(4)} @ {sym}{order.price.toFixed(2)}</p>

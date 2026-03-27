@@ -6,12 +6,14 @@ export interface Order {
   id: string;
   crypto_id: string;
   side: "buy" | "sell";
-  order_type: "market" | "limit";
+  type: "market" | "limit" | "stop_limit";
   price: number;
   amount: number;
-  filled_amount: number;
+  filled: number;
   total: number;
-  status: "open" | "filled" | "cancelled";
+  status: "open" | "filled" | "partially_filled" | "cancelled";
+  is_futures: boolean;
+  leverage: number;
   created_at: string;
 }
 
@@ -33,7 +35,7 @@ export function useOrders(cryptoId?: string) {
       ...o,
       price: Number(o.price),
       amount: Number(o.amount),
-      filled_amount: Number(o.filled_amount),
+      filled: Number(o.filled),
       total: Number(o.total),
     })) as Order[]);
     setLoading(false);
@@ -44,39 +46,37 @@ export function useOrders(cryptoId?: string) {
   const placeOrder = async (order: {
     crypto_id: string;
     side: "buy" | "sell";
-    order_type: "market" | "limit";
+    type: "market" | "limit";
     price: number;
     amount: number;
   }) => {
     if (!user) throw new Error("Not authenticated");
     const total = order.price * order.amount;
 
-    // Insert order
     const { data, error } = await supabase.from("orders").insert({
       user_id: user.id,
       crypto_id: order.crypto_id,
       side: order.side,
-      order_type: order.order_type,
+      type: order.type,
       price: order.price,
       amount: order.amount,
-      filled_amount: order.order_type === "market" ? order.amount : 0,
+      filled: order.type === "market" ? order.amount : 0,
       total,
-      status: order.order_type === "market" ? "filled" : "open",
+      status: order.type === "market" ? "filled" : "open",
     }).select().single();
 
     if (error) throw error;
 
-    // For market orders, create ledger entries and update wallet balances
-    if (order.order_type === "market") {
+    if (order.type === "market") {
       if (order.side === "buy") {
-        await supabase.from("ledger_entries" as any).insert([
+        await supabase.from("ledger_entries").insert([
           { user_id: user.id, crypto_id: "usdt", amount: -total, entry_type: "trade_buy_debit", reference_id: data.id, description: `Buy ${order.amount} ${order.crypto_id}` },
           { user_id: user.id, crypto_id: order.crypto_id, amount: order.amount, entry_type: "trade_buy_credit", reference_id: data.id, description: `Buy ${order.amount} ${order.crypto_id}` },
         ]);
         await upsertWallet(user.id, order.crypto_id, order.amount);
         await upsertWallet(user.id, "usdt", -total);
       } else {
-        await supabase.from("ledger_entries" as any).insert([
+        await supabase.from("ledger_entries").insert([
           { user_id: user.id, crypto_id: order.crypto_id, amount: -order.amount, entry_type: "trade_sell_debit", reference_id: data.id, description: `Sell ${order.amount} ${order.crypto_id}` },
           { user_id: user.id, crypto_id: "usdt", amount: total, entry_type: "trade_sell_credit", reference_id: data.id, description: `Sell ${order.amount} ${order.crypto_id}` },
         ]);

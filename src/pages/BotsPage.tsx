@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import BotAnalyticsView from "@/components/BotAnalyticsView";
 import { Bot, Search, Zap, Lock, Copy, Users, RotateCw, RefreshCw, Clock, TrendingUp, Activity, BarChart3, ChevronLeft, ChevronDown, ArrowLeft, Info, MessageSquare, Send, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +93,7 @@ const BotsPage = () => {
   const [strategyFilter, setStrategyFilter] = useState("All");
   const [bottomTab, setBottomTab] = useState<"running" | "history" | "pnl">("running");
   const [selectedBot, setSelectedBot] = useState<any>(null);
+  const [viewingRunningBot, setViewingRunningBot] = useState<any>(null);
   const [stakeAmount, setStakeAmount] = useState("");
   const [showParams, setShowParams] = useState(false);
   const [pairDropdownOpen, setPairDropdownOpen] = useState(false);
@@ -288,6 +290,7 @@ const BotsPage = () => {
           price: tradePrice,
           amount,
           side,
+          total: tradePrice * amount,
           pnl,
         });
 
@@ -924,7 +927,7 @@ const BotsPage = () => {
                           const staked = Number((bot.config as any)?.staked_amount || 0);
                           const profit = Number(bot.total_profit || 0);
                           return (
-                            <div key={bot.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border gap-2">
+                            <div key={bot.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border gap-2 cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setViewingRunningBot(bot)}>
                               <div>
                                 <p className="text-sm font-medium text-foreground">{bot.name}</p>
                                 <p className="text-[11px] text-muted-foreground">{getSymbol(bot.crypto_id)}/USDT • Staked: ${staked.toFixed(2)}</p>
@@ -938,7 +941,8 @@ const BotsPage = () => {
                                   variant="outline"
                                   size="sm"
                                   className="text-[10px] h-7 text-loss border-loss/30 hover:bg-loss/10"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (confirm(`Stop bot and withdraw $${(staked + profit).toFixed(2)} USDT?`)) {
                                       unstakeBot.mutate(bot);
                                     }
@@ -1009,7 +1013,9 @@ const BotsPage = () => {
 
           {/* Right sidebar - hidden on mobile, visible on md+ */}
           <div className="hidden md:flex w-[320px] md:w-[360px] border-l border-border bg-card flex-col overflow-hidden shrink-0">
-            {selectedBot ? (
+            {viewingRunningBot ? (
+              <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} />
+            ) : selectedBot ? (
               <BotDetailPanel bot={selectedBot} />
             ) : (
               <>

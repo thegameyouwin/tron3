@@ -5,6 +5,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useAppStore } from "@/stores/useAppStore";
 import { useWallets } from "@/hooks/useWallets";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { useProfile } from "@/hooks/useProfile";
 import TronnlixLogo from "@/components/TronnlixLogo";
 import LanguageSelector from "@/components/LanguageSelector";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   LayoutDashboard, Wallet, Banknote, Users, TrendingUp, CandlestickChart,
   Bot, Coins, Gift, ArrowRightLeft, ArrowDownToLine, History, CreditCard,
   ShieldCheck, Lock, HelpCircle, LogOut, Sun, Moon, Shield, ChevronLeft,
-  ChevronRight, Menu, X
+  ChevronRight, Menu, X, User
 } from "lucide-react";
 
 const sections = [
@@ -57,11 +58,12 @@ const sections = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { darkMode, toggleDarkMode } = useAppStore();
   const { wallets } = useWallets();
   const { prices } = useCryptoPrices();
+  const { profile } = useProfile();
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -88,11 +90,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </div>
 
-      {/* Balance card */}
+      {/* Profile & Balance card */}
       {!collapsed && (
-        <div className="mx-3 mt-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Portfolio</p>
-          <p className="text-lg font-bold text-foreground">${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <div className="mx-3 mt-3 space-y-2">
+          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-secondary/50 border border-border">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+              ) : (
+                <User className="h-4 w-4 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{profile?.display_name || user?.email?.split("@")[0] || "User"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+            </div>
+          </div>
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Portfolio</p>
+            <p className="text-lg font-bold text-foreground">${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
         </div>
       )}
 

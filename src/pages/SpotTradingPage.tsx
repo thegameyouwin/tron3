@@ -296,7 +296,7 @@ const SpotTradingPage = () => {
       await placeOrder({
         crypto_id: selectedCoin,
         side,
-        order_type: orderType,
+        type: orderType,
         price: effectivePrice,
         amount: amt,
       });
@@ -726,7 +726,7 @@ const SpotTradingPage = () => {
                         {order.side === "buy" ? "Long" : "Short"}
                       </td>
                       <td className="py-2 text-foreground capitalize">
-                        {order.order_type}
+                        {order.type}
                       </td>
                       <td className="py-2 text-right text-foreground tabular-nums">
                         {sym}
