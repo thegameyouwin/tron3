@@ -1017,6 +1017,7 @@ const BotsPage = () => {
               <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} />
             ) : selectedBot ? (
               <BotDetailPanel bot={selectedBot} />
+            ) : (
               <>
                 <div className="flex items-center gap-3 px-4 pt-4 pb-2">
                   <button className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${mainTab === "popular" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setMainTab("popular")}>Popular</button>
