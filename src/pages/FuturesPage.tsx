@@ -360,15 +360,15 @@ const FuturesPage = () => {
           </div>
         </div>
 
-        <div className="container mt-4 px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+        <div className="container mt-4 px-2 sm:px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
             {/* Chart */}
-            <div className="md:col-span-2 lg:col-span-6 bg-card border border-border rounded-xl overflow-hidden">
-              <div ref={chartRef} className="h-[400px]" />
+            <div className="lg:col-span-6 bg-card border border-border rounded-xl overflow-hidden">
+              <div ref={chartRef} className="h-[280px] sm:h-[400px]" />
             </div>
 
             {/* Order Book */}
-            <div className="md:col-span-1 lg:col-span-3 bg-card border border-border rounded-xl p-4 overflow-hidden">
+            <div className="hidden md:block lg:col-span-3 bg-card border border-border rounded-xl p-3 sm:p-4 overflow-hidden">
               <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
                 Order Book
               </h3>
@@ -433,7 +433,7 @@ const FuturesPage = () => {
             </div>
 
             {/* Order Form */}
-            <div className="md:col-span-1 lg:col-span-3 bg-card border border-border rounded-xl p-4">
+            <div className="lg:col-span-3 bg-card border border-border rounded-xl p-3 sm:p-4">
               {/* Long/Short toggle */}
               <div className="flex rounded-lg overflow-hidden border border-border mb-4">
                 <button
