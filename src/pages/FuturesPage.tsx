@@ -1,4 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import DemoModeBanner from "@/components/DemoModeBanner";
+import DemoModeToggle from "@/components/DemoModeToggle";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -79,7 +81,7 @@ const FuturesPage = () => {
 
   const { prices, getSymbol } = useCryptoPrices(10000);
   const { wallets, getBalance, fetchWallets, loading: walletsLoading } = useWallets();
-  const currency = useAppStore((s) => s.currency);
+  const { currency, demoMode, demoBalance, setDemoBalance } = useAppStore();
   const sym = currency === "inr" ? "₹" : "$";
 
   const selectedPrice = prices.find(p => p.id === selectedCoin);
@@ -103,7 +105,8 @@ const FuturesPage = () => {
   }, [effectivePrice, leverage, side]);
 
   // USDT balance
-  const usdtBalance = getBalance("usdt");
+  const realUsdtBalance = getBalance("usdt");
+  const usdtBalance = demoMode ? demoBalance : realUsdtBalance;
 
   // Filter pairs for dropdown
   const filteredPairs = useMemo(() => {
@@ -202,14 +205,16 @@ const FuturesPage = () => {
       return;
     }
 
-    // Deduct margin from wallet
-    const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
-    if (usdtWallet) {
-      await supabase.from("wallets").update({ balance: usdtBalance - margin }).eq("id", usdtWallet.id);
+    if (demoMode) {
+      setDemoBalance(demoBalance - margin);
+    } else {
+      const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
+      if (usdtWallet) {
+        await supabase.from("wallets").update({ balance: realUsdtBalance - margin }).eq("id", usdtWallet.id);
+      }
+      await fetchWallets();
     }
-    await fetchWallets();
 
-    // Create position
     const newPosition: Position = {
       id: Date.now().toString(),
       pairId: selectedCoin,
@@ -223,28 +228,31 @@ const FuturesPage = () => {
       timestamp: Date.now(),
     };
     setPositions(prev => [newPosition, ...prev]);
-    toast.success(`${side === "long" ? "Long" : "Short"} position opened: ${totalPositionSize} USDT @ ${effectivePrice} (${leverage}x)`);
+    toast.success(`${demoMode ? "[DEMO] " : ""}${side === "long" ? "Long" : "Short"} position opened: ${totalPositionSize} USDT @ ${effectivePrice} (${leverage}x)`);
     setAmount("");
     if (orderType === "limit") setLimitPrice("");
   };
 
   // Close a position
   const closePosition = async (pos: Position) => {
-    // Calculate PnL in USDT based on current price
     let pnl = 0;
     if (pos.side === "long") {
       pnl = (currentPrice - pos.entryPrice) / pos.entryPrice * pos.amount;
     } else {
       pnl = (pos.entryPrice - currentPrice) / pos.entryPrice * pos.amount;
     }
-    const finalBalance = usdtBalance + pos.margin + pnl;
-    const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
-    if (usdtWallet) {
-      await supabase.from("wallets").update({ balance: finalBalance }).eq("id", usdtWallet.id);
+    if (demoMode) {
+      setDemoBalance(demoBalance + pos.margin + pnl);
+    } else {
+      const finalBalance = realUsdtBalance + pos.margin + pnl;
+      const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
+      if (usdtWallet) {
+        await supabase.from("wallets").update({ balance: finalBalance }).eq("id", usdtWallet.id);
+      }
+      await fetchWallets();
     }
-    await fetchWallets();
     setPositions(prev => prev.filter(p => p.id !== pos.id));
-    toast.success(`Position closed. PnL: ${pnl >= 0 ? "+" : ""}${sym}${pnl.toFixed(2)}`);
+    toast.success(`${demoMode ? "[DEMO] " : ""}Position closed. PnL: ${pnl >= 0 ? "+" : ""}${sym}${pnl.toFixed(2)}`);
   };
 
   return (
