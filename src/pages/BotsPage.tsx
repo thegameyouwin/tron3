@@ -372,12 +372,18 @@ const BotsPage = () => {
         ...prev,
       ]);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["my_bots"] });
       queryClient.invalidateQueries({ queryKey: ["usdt_wallet"] });
       toast.success("Bot started! Your stake is now active.");
       setSelectedBot(null);
       setStakeAmount("");
+      // After a short delay to let the bot appear in my_bots, show it
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["my_bots"] }).then(() => {
+          // The newest running bot will appear in the running list
+        });
+      }, 1000);
     },
     onError: (err: any) => {
       if (err.message.includes("Insufficient balance")) {
