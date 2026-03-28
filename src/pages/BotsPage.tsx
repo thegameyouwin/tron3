@@ -525,10 +525,8 @@ const BotsPage = () => {
   }, [chartSymbol]);
 
   const handleSelectBot = (bot: any) => {
-    if (!isPremiumLocked(bot)) {
-      setSelectedBot(bot);
-      setSelectedChartPair(bot.crypto_id); // Update chart to bot's pair
-    }
+    setSelectedBot(bot);
+    setSelectedChartPair(bot.crypto_id);
   };
 
   // Chat command handler
