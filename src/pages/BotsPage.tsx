@@ -1069,8 +1069,8 @@ const BotsPage = () => {
             </div>
           </div>
 
-          {/* Right sidebar - hidden on mobile, visible on md+ */}
-          <div className="hidden md:flex w-[320px] md:w-[360px] border-l border-border bg-card flex-col overflow-hidden shrink-0">
+          {/* Right sidebar - shows on all screens; on mobile shows as full width when bot selected */}
+          <div className={`${viewingRunningBot || selectedBot ? "flex w-full md:w-[320px] lg:w-[360px]" : "hidden md:flex w-[320px] lg:w-[360px]"} border-l border-border bg-card flex-col overflow-hidden shrink-0`}>
             {viewingRunningBot ? (
               <BotAnalyticsView
                 bot={viewingRunningBot}
