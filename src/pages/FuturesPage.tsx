@@ -1,4 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import DemoModeBanner from "@/components/DemoModeBanner";
+import DemoModeToggle from "@/components/DemoModeToggle";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -79,7 +81,7 @@ const FuturesPage = () => {
 
   const { prices, getSymbol } = useCryptoPrices(10000);
   const { wallets, getBalance, fetchWallets, loading: walletsLoading } = useWallets();
-  const currency = useAppStore((s) => s.currency);
+  const { currency, demoMode, demoBalance, setDemoBalance } = useAppStore();
   const sym = currency === "inr" ? "₹" : "$";
 
   const selectedPrice = prices.find(p => p.id === selectedCoin);
@@ -103,7 +105,8 @@ const FuturesPage = () => {
   }, [effectivePrice, leverage, side]);
 
   // USDT balance
-  const usdtBalance = getBalance("usdt");
+  const realUsdtBalance = getBalance("usdt");
+  const usdtBalance = demoMode ? demoBalance : realUsdtBalance;
 
   // Filter pairs for dropdown
   const filteredPairs = useMemo(() => {
@@ -202,14 +205,16 @@ const FuturesPage = () => {
       return;
     }
 
-    // Deduct margin from wallet
-    const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
-    if (usdtWallet) {
-      await supabase.from("wallets").update({ balance: usdtBalance - margin }).eq("id", usdtWallet.id);
+    if (demoMode) {
+      setDemoBalance(demoBalance - margin);
+    } else {
+      const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
+      if (usdtWallet) {
+        await supabase.from("wallets").update({ balance: realUsdtBalance - margin }).eq("id", usdtWallet.id);
+      }
+      await fetchWallets();
     }
-    await fetchWallets();
 
-    // Create position
     const newPosition: Position = {
       id: Date.now().toString(),
       pairId: selectedCoin,
@@ -223,36 +228,41 @@ const FuturesPage = () => {
       timestamp: Date.now(),
     };
     setPositions(prev => [newPosition, ...prev]);
-    toast.success(`${side === "long" ? "Long" : "Short"} position opened: ${totalPositionSize} USDT @ ${effectivePrice} (${leverage}x)`);
+    toast.success(`${demoMode ? "[DEMO] " : ""}${side === "long" ? "Long" : "Short"} position opened: ${totalPositionSize} USDT @ ${effectivePrice} (${leverage}x)`);
     setAmount("");
     if (orderType === "limit") setLimitPrice("");
   };
 
   // Close a position
   const closePosition = async (pos: Position) => {
-    // Calculate PnL in USDT based on current price
     let pnl = 0;
     if (pos.side === "long") {
       pnl = (currentPrice - pos.entryPrice) / pos.entryPrice * pos.amount;
     } else {
       pnl = (pos.entryPrice - currentPrice) / pos.entryPrice * pos.amount;
     }
-    const finalBalance = usdtBalance + pos.margin + pnl;
-    const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
-    if (usdtWallet) {
-      await supabase.from("wallets").update({ balance: finalBalance }).eq("id", usdtWallet.id);
+    if (demoMode) {
+      setDemoBalance(demoBalance + pos.margin + pnl);
+    } else {
+      const finalBalance = realUsdtBalance + pos.margin + pnl;
+      const usdtWallet = wallets.find(w => w.crypto_id === "usdt");
+      if (usdtWallet) {
+        await supabase.from("wallets").update({ balance: finalBalance }).eq("id", usdtWallet.id);
+      }
+      await fetchWallets();
     }
-    await fetchWallets();
     setPositions(prev => prev.filter(p => p.id !== pos.id));
-    toast.success(`Position closed. PnL: ${pnl >= 0 ? "+" : ""}${sym}${pnl.toFixed(2)}`);
+    toast.success(`${demoMode ? "[DEMO] " : ""}Position closed. PnL: ${pnl >= 0 ? "+" : ""}${sym}${pnl.toFixed(2)}`);
   };
 
   return (
     <DashboardLayout>
+      <DemoModeBanner />
       <div className="p-0">
         {/* Header with pair selector */}
         <div className="border-b border-border bg-card sticky top-0 z-10">
-          <div className="container flex flex-wrap items-center gap-3 py-2 px-4">
+          <div className="container flex flex-wrap items-center gap-2 sm:gap-3 py-2 px-3 sm:px-4">
+            <DemoModeToggle />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setPairDropdownOpen(!pairDropdownOpen)}
@@ -350,15 +360,15 @@ const FuturesPage = () => {
           </div>
         </div>
 
-        <div className="container mt-4 px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+        <div className="container mt-4 px-2 sm:px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
             {/* Chart */}
-            <div className="md:col-span-2 lg:col-span-6 bg-card border border-border rounded-xl overflow-hidden">
-              <div ref={chartRef} className="h-[400px]" />
+            <div className="lg:col-span-6 bg-card border border-border rounded-xl overflow-hidden">
+              <div ref={chartRef} className="h-[280px] sm:h-[400px]" />
             </div>
 
             {/* Order Book */}
-            <div className="md:col-span-1 lg:col-span-3 bg-card border border-border rounded-xl p-4 overflow-hidden">
+            <div className="hidden md:block lg:col-span-3 bg-card border border-border rounded-xl p-3 sm:p-4 overflow-hidden">
               <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
                 Order Book
               </h3>
@@ -423,7 +433,7 @@ const FuturesPage = () => {
             </div>
 
             {/* Order Form */}
-            <div className="md:col-span-1 lg:col-span-3 bg-card border border-border rounded-xl p-4">
+            <div className="lg:col-span-3 bg-card border border-border rounded-xl p-3 sm:p-4">
               {/* Long/Short toggle */}
               <div className="flex rounded-lg overflow-hidden border border-border mb-4">
                 <button
@@ -524,7 +534,7 @@ const FuturesPage = () => {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Available USDT: {sym}{usdtBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {demoMode ? "Demo" : "Available"} USDT: {sym}{usdtBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
 
                 <Button

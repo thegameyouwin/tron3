@@ -6,7 +6,8 @@ import {
   Settings, Database, CreditCard, Shield, ArrowLeft, Save, Users,
   CheckCircle2, XCircle, Clock, Bot, Plus, Trash2, Play, Square,
   DollarSign, Activity, BarChart3, Search, Filter, ChevronLeft,
-  ChevronRight, RefreshCw, AlertTriangle, Edit2, TrendingUp, Zap
+  ChevronRight, RefreshCw, AlertTriangle, Edit2, TrendingUp, Zap,
+  UserPlus, ShieldCheck
 } from "lucide-react";
 import { useSiteSettingsDB } from "@/hooks/useSiteSettingsDB";
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/hooks/useAdminData";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ALL_CRYPTOS = [
   { id: "bitcoin", name: "Bitcoin", symbol: "BTC" },
@@ -626,24 +628,57 @@ const AdminPage = () => {
                       <tr className="border-b border-border text-muted-foreground">
                         <th className="text-left py-3 px-4">User ID</th>
                         <th className="text-left py-3 px-4">Name</th>
-                        <th className="text-left py-3 px-4">Country</th>
-                        <th className="text-left py-3 px-4">Referral</th>
+                        <th className="text-left py-3 px-4">Email</th>
                         <th className="text-left py-3 px-4">Joined</th>
                         <th className="text-left py-3 px-4">Status</th>
+                        <th className="text-right py-3 px-4">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredUsers.map((u: any) => (
                         <tr key={u.user_id} className="border-b border-border/50">
                           <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{u.user_id.slice(0, 12)}...</td>
-                          <td className="py-3 px-4 text-foreground font-medium">{u.full_name || "—"}</td>
-                          <td className="py-3 px-4 text-muted-foreground">{u.country || "—"}</td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground">{u.referral_code || "—"}</td>
+                          <td className="py-3 px-4 text-foreground font-medium">{u.display_name || "—"}</td>
+                          <td className="py-3 px-4 text-xs text-muted-foreground">{u.email || "—"}</td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                           <td className="py-3 px-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${u.banned ? "bg-loss/10 text-loss" : "bg-profit/10 text-profit"}`}>
-                              {u.banned ? "Banned" : "Active"}
-                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-profit/10 text-profit">Active</span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-[10px] h-7 gap-1"
+                                onClick={async () => {
+                                  const { error } = await supabase.from("user_roles").insert({
+                                    user_id: u.user_id,
+                                    role: "moderator" as any,
+                                  });
+                                  if (error) {
+                                    if (error.code === "23505") toast.info("User is already a moderator");
+                                    else toast.error(error.message);
+                                  } else {
+                                    toast.success(`${u.display_name || u.email} is now a moderator`);
+                                  }
+                                }}
+                              >
+                                <ShieldCheck className="h-3 w-3" /> Mod
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-[10px] h-7 gap-1"
+                                onClick={() => {
+                                  const amt = prompt("Enter USDT amount to add:");
+                                  if (amt && !isNaN(Number(amt))) {
+                                    addBalance.mutate({ userId: u.user_id, cryptoId: "usdt", amount: Number(amt) });
+                                  }
+                                }}
+                              >
+                                <DollarSign className="h-3 w-3" /> Balance
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

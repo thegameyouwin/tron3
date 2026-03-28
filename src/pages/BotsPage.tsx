@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import BotAnalyticsView from "@/components/BotAnalyticsView";
 import DemoModeBanner from "@/components/DemoModeBanner";
 import DemoModeToggle from "@/components/DemoModeToggle";
-import { Bot, Search, Zap, Lock, Copy, Users, RotateCw, RefreshCw, Clock, TrendingUp, Activity, BarChart3, ChevronLeft, ChevronDown, ArrowLeft, Info, MessageSquare, Send, X } from "lucide-react";
+import { Bot, Search, Zap, Lock, Copy, Users, RotateCw, RefreshCw, Clock, TrendingUp, Activity, BarChart3, ChevronLeft, ChevronDown, ArrowLeft, Info, MessageSquare, Send, X, Wallet, CreditCard } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppStore } from "@/stores/useAppStore";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { QRCodeSVG } from "qrcode.react";
 
 // List of tradeable pairs (same as SpotTradingPage)
 const TRADEABLE = [
@@ -90,7 +92,7 @@ const BotsPage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { demoMode, demoBalance, setDemoBalance } = useAppStore();
-
+  const { settings } = useSiteSettings();
   const [mainTab, setMainTab] = useState<"popular" | "ai">("popular");
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("All Tiers");
@@ -370,12 +372,18 @@ const BotsPage = () => {
         ...prev,
       ]);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["my_bots"] });
       queryClient.invalidateQueries({ queryKey: ["usdt_wallet"] });
       toast.success("Bot started! Your stake is now active.");
       setSelectedBot(null);
       setStakeAmount("");
+      // After a short delay to let the bot appear in my_bots, show it
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["my_bots"] }).then(() => {
+          // The newest running bot will appear in the running list
+        });
+      }, 1000);
     },
     onError: (err: any) => {
       if (err.message.includes("Insufficient balance")) {
@@ -471,7 +479,7 @@ const BotsPage = () => {
     });
   }, [platformBots, mainTab, tierFilter, strategyFilter, searchQuery]);
 
-  const isPremiumLocked = (bot: any) => {
+  const isPremiumTier = (bot: any) => {
     const tier = (bot.tier || "free").toLowerCase();
     return tier === "pro" || tier === "elite" || tier === "vip";
   };
@@ -525,10 +533,8 @@ const BotsPage = () => {
   }, [chartSymbol]);
 
   const handleSelectBot = (bot: any) => {
-    if (!isPremiumLocked(bot)) {
-      setSelectedBot(bot);
-      setSelectedChartPair(bot.crypto_id); // Update chart to bot's pair
-    }
+    setSelectedBot(bot);
+    setSelectedChartPair(bot.crypto_id);
   };
 
   // Chat command handler
@@ -604,27 +610,28 @@ const BotsPage = () => {
   const BotCard = ({ bot }: { bot: any }) => {
     const tier = (bot.tier || "free").toLowerCase();
     const stratLabel = STRATEGY_LABELS[bot.strategy] || bot.strategy;
-    const locked = isPremiumLocked(bot);
+    const premium = isPremiumTier(bot);
     const roi = calcROI(bot.total_profit, bot.config, bot.created_at);
     const winRate = calcWinRate(bot.total_trades, bot.total_profit);
     const runtime = formatRuntime(bot.created_at);
 
     return (
-      <div className="bg-card border border-border rounded-xl p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleSelectBot(bot)}>
-        <div className="flex items-center gap-1.5 mb-3">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleSelectBot(bot)}>
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{stratLabel}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
           {bot.is_ai && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">⚡ AI</span>}
+          {premium && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-primary/20 text-primary border-primary/30">💎 Premium</span>}
           {bot.total_profit > 200000 && <span className="ml-auto text-[10px] bg-loss/20 text-loss px-1.5 py-0.5 rounded-full font-bold">🔥 Hot</span>}
         </div>
         <div className="flex justify-between items-start mb-1">
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">{bot.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-foreground truncate">{bot.name}</h3>
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{bot.description}</p>
           </div>
           <Sparkline />
         </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3 mb-3">
+        <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2 mt-3 mb-3">
           <div><p className="text-[10px] text-muted-foreground">PNL (USD)</p><p className="text-sm font-bold text-profit">+{bot.total_profit.toLocaleString()}</p></div>
           <div><p className="text-[10px] text-muted-foreground">ROI</p><p className="text-sm font-bold text-profit">+{roi.toFixed(2)}%/hr</p></div>
           <div><p className="text-[10px] text-muted-foreground">Runtime</p><p className="text-xs font-medium text-foreground">{runtime}</p></div>
@@ -636,23 +643,10 @@ const BotsPage = () => {
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Users className="h-3 w-3" /><span>{(bot.bot_users || 0).toLocaleString()} users</span><span className="mx-1">•</span><span>{bot.runs || 0} runs</span>
           </div>
-          {locked ? (
-            <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border text-muted-foreground cursor-not-allowed" disabled><Lock className="h-3 w-3" /> Locked</Button>
-          ) : (
-            <Button size="sm" className="text-[11px] h-7 bg-profit hover:bg-profit/80 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleSelectBot(bot); }}>
-              <Copy className="h-3 w-3" /> Copy
-            </Button>
-          )}
+          <Button size="sm" className="text-[11px] h-7 bg-profit hover:bg-profit/80 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleSelectBot(bot); }}>
+            <Copy className="h-3 w-3" /> Copy
+          </Button>
         </div>
-        {locked && (
-          <div className="absolute inset-0 bg-card/60 backdrop-blur-[2px] flex items-center justify-center z-10 rounded-xl">
-            <div className="text-center">
-              <Lock className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-              <p className="text-sm font-semibold text-foreground">{tier === "vip" ? "VIP" : tier === "elite" ? "Elite" : "Pro"} Required</p>
-              <p className="text-[11px] text-primary cursor-pointer hover:underline">Upgrade Plan →</p>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -664,28 +658,41 @@ const BotsPage = () => {
     const runtime = formatRuntime(bot.created_at);
     const pair = `${getSymbol(bot.crypto_id)}/USDT`;
     const amount = Number(stakeAmount) || 0;
-    const canStake = amount >= bot.min_stake && amount <= usdtBalance;
+    const effectiveBalance = demoMode ? demoBalance : usdtBalance;
+    const canStake = amount >= bot.min_stake && amount <= effectiveBalance;
+    const premium = isPremiumTier(bot);
+    const [paymentStep, setPaymentStep] = useState<"info" | "pay" | "monitoring">("info");
+    const depositAddress = settings.depositWallets?.["bitcoin"] || settings.depositWallets?.["ethereum"] || "";
 
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 pt-4 pb-3 border-b border-border">
+        <div className="px-3 sm:px-4 pt-4 pb-3 border-b border-border">
           <button onClick={() => { setSelectedBot(null); setStakeAmount(""); }} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-2">
             <ArrowLeft className="h-4 w-4" />
             <span className="text-xs">Back to bots</span>
           </button>
-          <p className="text-[11px] text-muted-foreground">~ {stratLabel}</p>
-          <h2 className="text-lg font-bold text-foreground">{pair}</h2>
+          <div className="flex items-center gap-2">
+            <div>
+              <p className="text-[11px] text-muted-foreground">~ {stratLabel}</p>
+              <h2 className="text-lg font-bold text-foreground">{pair}</h2>
+            </div>
+            {premium && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-primary/20 text-primary border-primary/30 ml-auto">💎 {(bot.tier || "pro").charAt(0).toUpperCase() + (bot.tier || "pro").slice(1)}</span>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-4 mt-3 p-3 bg-profit/10 border border-profit/20 rounded-lg">
+          <div className="mx-3 sm:mx-4 mt-3 p-3 bg-profit/10 border border-profit/20 rounded-lg">
             <p className="text-[11px] text-profit flex items-center gap-1.5">
               <Info className="h-3.5 w-3.5 shrink-0" />
-              You are using a shared parameter. As market condition changes, bot may auto-adjust strategy within set range.
+              {premium && !demoMode
+                ? "Premium bot requires a deposit to activate. Pay the stake amount to start."
+                : "You are using a shared parameter. As market condition changes, bot may auto-adjust strategy within set range."}
             </p>
           </div>
 
-          <div className="mx-4 mt-4">
+          <div className="mx-3 sm:mx-4 mt-4">
             <h3 className="text-sm font-bold text-foreground mb-2">Basic Info</h3>
             <div className="bg-secondary/50 rounded-lg border border-border divide-y divide-border">
               {[
@@ -693,11 +700,9 @@ const BotsPage = () => {
                 { label: "ROI", value: `+${roi.toFixed(2)}%/hr`, color: "text-profit" },
                 { label: "Daily Earn", value: `+${bot.daily_earn.toFixed(2)}%`, color: "text-profit" },
                 { label: "Runtime", value: runtime, color: "text-foreground" },
-                { label: "24h/Total Trades", value: `${Math.floor(bot.total_trades * 0.03)}/${bot.total_trades.toLocaleString()}`, color: "text-foreground" },
                 { label: "Win Rate", value: `${winRate.toFixed(2)}%`, color: "text-foreground" },
                 { label: "Min. Stake", value: `$${bot.min_stake.toFixed(2)} USDT`, color: "text-foreground" },
-                { label: "Type", value: stratLabel, color: "text-profit font-semibold" },
-                { label: "Pair", value: pair, color: "text-foreground font-semibold" },
+                { label: "Tier", value: (bot.tier || "free").charAt(0).toUpperCase() + (bot.tier || "free").slice(1), color: premium ? "text-primary font-semibold" : "text-foreground" },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between px-3 py-2.5">
                   <span className="text-xs text-muted-foreground">{row.label}</span>
@@ -707,89 +712,128 @@ const BotsPage = () => {
             </div>
           </div>
 
-          <div className="mx-4 mt-4">
-            <button
-              className="flex items-center gap-1 text-xs text-primary font-medium mb-3"
-              onClick={() => setShowParams(!showParams)}
-            >
-              Customize Parameters <ChevronDown className={`h-3 w-3 transition-transform ${showParams ? "rotate-180" : ""}`} />
-            </button>
-            {showParams && (
-              <div className="bg-secondary/50 rounded-lg border border-border p-3 space-y-2 mb-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Spread</span>
-                  <span className="text-foreground">{((bot.config as any)?.spread_percent || 0.5)}%</span>
+          {/* Premium Payment Flow */}
+          {premium && !demoMode && paymentStep === "pay" ? (
+            <div className="mx-3 sm:mx-4 mt-4 mb-4">
+              <div className="bg-card border border-primary/30 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Send Payment</h3>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Order Size</span>
-                  <span className="text-foreground">{((bot.config as any)?.order_size || 0.1)}</span>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Send <span className="text-foreground font-bold">${stakeAmount || bot.min_stake} USDT</span> to the wallet below to activate your premium bot.
+                </p>
+                <div className="flex justify-center mb-3">
+                  <div className="bg-white p-2 rounded-lg">
+                    <QRCodeSVG value={depositAddress} size={120} />
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Max Orders</span>
-                  <span className="text-foreground">{((bot.config as any)?.max_orders || 5)}</span>
+                <div className="bg-secondary rounded-lg p-3 mb-3">
+                  <p className="text-[10px] text-muted-foreground mb-1">Deposit Address</p>
+                  <p className="text-xs text-foreground font-mono break-all">{depositAddress}</p>
                 </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(depositAddress);
+                    toast.success("Address copied!");
+                  }}
+                  className="w-full text-xs py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors mb-3"
+                >
+                  Copy Address
+                </button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  After sending, click "I've Paid" below. Our system will verify the transaction.
+                </p>
               </div>
-            )}
-          </div>
-
-          <div className="mx-4 mt-2 mb-4">
-            <div className="bg-card border border-border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-foreground">Stake Amount</span>
-                <span className="text-xs text-muted-foreground">USDT</span>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                <input
-                  type="number"
-                  value={stakeAmount}
-                  onChange={e => setStakeAmount(e.target.value)}
-                  placeholder={bot.min_stake.toFixed(2)}
-                  className="w-full h-12 pl-7 pr-16 rounded-lg bg-secondary border border-border text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USDT</span>
-              </div>
-              {/* Quick stake buttons */}
-              <div className="flex gap-2 mt-3">
-                {[10, 50, 100].map(amt => (
+            </div>
+          ) : (
+            <div className="mx-3 sm:mx-4 mt-2 mb-4">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-foreground">Stake Amount</span>
+                  <span className="text-xs text-muted-foreground">USDT</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    value={stakeAmount}
+                    onChange={e => setStakeAmount(e.target.value)}
+                    placeholder={bot.min_stake.toFixed(2)}
+                    className="w-full h-12 pl-7 pr-16 rounded-lg bg-secondary border border-border text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USDT</span>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  {[bot.min_stake, 100, 500].map(amt => (
+                    <button
+                      key={amt}
+                      onClick={() => setStakeAmount(amt.toString())}
+                      className="flex-1 text-xs py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      ${amt}
+                    </button>
+                  ))}
                   <button
-                    key={amt}
-                    onClick={() => setStakeAmount(amt.toString())}
+                    onClick={() => setStakeAmount(effectiveBalance.toFixed(2))}
                     className="flex-1 text-xs py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                   >
-                    ${amt}
+                    MAX
                   </button>
-                ))}
-                <button
-                  onClick={() => setStakeAmount(usdtBalance.toFixed(2))}
-                  className="flex-1 text-xs py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                >
-                  MAX
-                </button>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    {demoMode ? "Demo " : ""}Balance: <span className="text-foreground font-medium">${effectiveBalance.toFixed(2)}</span> USDT
+                  </span>
+                </div>
+                {amount > 0 && amount < bot.min_stake && (
+                  <p className="text-[11px] text-loss mt-1">Minimum stake is ${bot.min_stake.toFixed(2)} USDT</p>
+                )}
+                {amount > effectiveBalance && !premium && (
+                  <p className="text-[11px] text-loss mt-1">Insufficient balance. <Link to="/deposit" className="text-primary hover:underline">Deposit →</Link></p>
+                )}
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-muted-foreground">
-                  Balance: <span className="text-foreground font-medium">${usdtBalance.toFixed(2)}</span> USDT
-                </span>
-              </div>
-              {amount > 0 && amount < bot.min_stake && (
-                <p className="text-[11px] text-loss mt-1">Minimum stake is ${bot.min_stake.toFixed(2)} USDT</p>
-              )}
-              {amount > usdtBalance && (
-                <p className="text-[11px] text-loss mt-1">Insufficient balance. <Link to="/deposit" className="text-primary hover:underline">Deposit →</Link></p>
-              )}
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="p-4 border-t border-border">
-          <Button
-            className="w-full h-12 text-sm font-bold bg-profit hover:bg-profit/90 text-white rounded-lg disabled:opacity-50"
-            disabled={!canStake || stakeBot.isPending}
-            onClick={() => stakeBot.mutate({ bot, amount })}
-          >
-            {stakeBot.isPending ? "Processing..." : canStake ? "Sign Terms & Start Bot" : amount > usdtBalance ? "Insufficient Balance" : "Enter Stake Amount"}
-          </Button>
+        <div className="p-3 sm:p-4 border-t border-border">
+          {premium && !demoMode && paymentStep === "pay" ? (
+            <Button
+              className="w-full h-12 text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+              onClick={() => {
+                toast.success("Payment verification started. Bot will activate once confirmed.");
+                setPaymentStep("monitoring");
+                // In production, this would create a deposit_monitor and poll
+                setTimeout(() => {
+                  stakeBot.mutate({ bot, amount: Number(stakeAmount) || bot.min_stake });
+                  setPaymentStep("info");
+                }, 3000);
+              }}
+            >
+              <CreditCard className="h-4 w-4 mr-2" /> I've Paid — Verify & Start Bot
+            </Button>
+          ) : premium && !demoMode && paymentStep === "monitoring" ? (
+            <Button className="w-full h-12 text-sm font-bold rounded-lg" disabled>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Verifying payment...
+            </Button>
+          ) : premium && !demoMode ? (
+            <Button
+              className="w-full h-12 text-sm font-bold bg-profit hover:bg-profit/90 text-white rounded-lg disabled:opacity-50"
+              disabled={amount < bot.min_stake}
+              onClick={() => setPaymentStep("pay")}
+            >
+              {amount >= bot.min_stake ? `Pay $${amount.toFixed(2)} to Activate` : "Enter Stake Amount"}
+            </Button>
+          ) : (
+            <Button
+              className="w-full h-12 text-sm font-bold bg-profit hover:bg-profit/90 text-white rounded-lg disabled:opacity-50"
+              disabled={!canStake || stakeBot.isPending}
+              onClick={() => stakeBot.mutate({ bot, amount })}
+            >
+              {stakeBot.isPending ? "Processing..." : canStake ? "Sign Terms & Start Bot" : amount > effectiveBalance ? "Insufficient Balance" : "Enter Stake Amount"}
+            </Button>
+          )}
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             By clicking, you agree to the bot's terms. Staked funds will be managed by the bot strategy.
           </p>
@@ -1025,8 +1069,8 @@ const BotsPage = () => {
             </div>
           </div>
 
-          {/* Right sidebar - hidden on mobile, visible on md+ */}
-          <div className="hidden md:flex w-[320px] md:w-[360px] border-l border-border bg-card flex-col overflow-hidden shrink-0">
+          {/* Right sidebar - shows on all screens; on mobile shows as full width when bot selected */}
+          <div className={`${viewingRunningBot || selectedBot ? "flex w-full md:w-[320px] lg:w-[360px]" : "hidden md:flex w-[320px] lg:w-[360px]"} border-l border-border bg-card flex-col overflow-hidden shrink-0`}>
             {viewingRunningBot ? (
               <BotAnalyticsView
                 bot={viewingRunningBot}
