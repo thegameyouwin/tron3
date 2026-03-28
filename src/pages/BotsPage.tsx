@@ -602,27 +602,28 @@ const BotsPage = () => {
   const BotCard = ({ bot }: { bot: any }) => {
     const tier = (bot.tier || "free").toLowerCase();
     const stratLabel = STRATEGY_LABELS[bot.strategy] || bot.strategy;
-    const locked = isPremiumLocked(bot);
+    const premium = isPremiumTier(bot);
     const roi = calcROI(bot.total_profit, bot.config, bot.created_at);
     const winRate = calcWinRate(bot.total_trades, bot.total_profit);
     const runtime = formatRuntime(bot.created_at);
 
     return (
-      <div className="bg-card border border-border rounded-xl p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleSelectBot(bot)}>
-        <div className="flex items-center gap-1.5 mb-3">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleSelectBot(bot)}>
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{stratLabel}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
           {bot.is_ai && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">⚡ AI</span>}
+          {premium && <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-primary/20 text-primary border-primary/30">💎 Premium</span>}
           {bot.total_profit > 200000 && <span className="ml-auto text-[10px] bg-loss/20 text-loss px-1.5 py-0.5 rounded-full font-bold">🔥 Hot</span>}
         </div>
         <div className="flex justify-between items-start mb-1">
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">{bot.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-foreground truncate">{bot.name}</h3>
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{bot.description}</p>
           </div>
           <Sparkline />
         </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3 mb-3">
+        <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2 mt-3 mb-3">
           <div><p className="text-[10px] text-muted-foreground">PNL (USD)</p><p className="text-sm font-bold text-profit">+{bot.total_profit.toLocaleString()}</p></div>
           <div><p className="text-[10px] text-muted-foreground">ROI</p><p className="text-sm font-bold text-profit">+{roi.toFixed(2)}%/hr</p></div>
           <div><p className="text-[10px] text-muted-foreground">Runtime</p><p className="text-xs font-medium text-foreground">{runtime}</p></div>
@@ -634,23 +635,10 @@ const BotsPage = () => {
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Users className="h-3 w-3" /><span>{(bot.bot_users || 0).toLocaleString()} users</span><span className="mx-1">•</span><span>{bot.runs || 0} runs</span>
           </div>
-          {locked ? (
-            <Button variant="outline" size="sm" className="text-[11px] h-7 gap-1 border-border text-muted-foreground cursor-not-allowed" disabled><Lock className="h-3 w-3" /> Locked</Button>
-          ) : (
-            <Button size="sm" className="text-[11px] h-7 bg-profit hover:bg-profit/80 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleSelectBot(bot); }}>
-              <Copy className="h-3 w-3" /> Copy
-            </Button>
-          )}
+          <Button size="sm" className="text-[11px] h-7 bg-profit hover:bg-profit/80 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleSelectBot(bot); }}>
+            <Copy className="h-3 w-3" /> Copy
+          </Button>
         </div>
-        {locked && (
-          <div className="absolute inset-0 bg-card/60 backdrop-blur-[2px] flex items-center justify-center z-10 rounded-xl">
-            <div className="text-center">
-              <Lock className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-              <p className="text-sm font-semibold text-foreground">{tier === "vip" ? "VIP" : tier === "elite" ? "Elite" : "Pro"} Required</p>
-              <p className="text-[11px] text-primary cursor-pointer hover:underline">Upgrade Plan →</p>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
