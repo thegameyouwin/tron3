@@ -570,6 +570,11 @@ const BotsPage = () => {
   }, [chartSymbol]);
 
   const handleSelectBot = (bot: any) => {
+    const botTier = (bot.tier || "free").toLowerCase();
+    if (!canAccessTier(botTier) && !demoMode) {
+      toast.error(`Upgrade to ${botTier.charAt(0).toUpperCase() + botTier.slice(1)} tier to use this bot.`);
+      return;
+    }
     setSelectedBot(bot);
     setSelectedChartPair(bot.crypto_id);
   };
