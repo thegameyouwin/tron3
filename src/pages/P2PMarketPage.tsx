@@ -645,7 +645,7 @@ const P2PMarketPage = () => {
         {/* Header with Wallet */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">P2P Marketplace Simulator</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground">P2P Marketplace </h1>
             <p className="text-sm text-muted-foreground">Buy and sell crypto directly with other users</p>
           </div>
           <div className="flex items-center gap-2">
