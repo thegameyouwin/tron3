@@ -91,10 +91,12 @@ interface ChatMessage {
 const BotsPage = () => {
   const { getSymbol, prices } = useCryptoPrices();
   const { user } = useAuth();
+  const { profile, refetch: refetchProfile } = useProfile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { demoMode, demoBalance, setDemoBalance } = useAppStore();
   const { settings } = useSiteSettings();
+  const accountTier = (profile as any)?.account_tier || "free";
   const [mainTab, setMainTab] = useState<"popular" | "ai">("popular");
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("All Tiers");
