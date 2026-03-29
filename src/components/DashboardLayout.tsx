@@ -216,7 +216,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <TronnlixLogo size={24} />
             <span className="text-base font-display font-bold text-foreground">Tronnlix</span>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <AccountTierBadge tier={accountTier} compact />
             <Link to="/deposit">
               <Button variant="gold" size="sm" className="text-xs gap-1">
                 <Wallet className="h-3 w-3" />${totalUsd.toFixed(2)}
@@ -229,6 +230,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      {/* Upgrade modal */}
+      {showUpgrade && (
+        <UpgradeTierModal
+          currentTier={accountTier}
+          onClose={() => setShowUpgrade(false)}
+          onUpgraded={() => { setShowUpgrade(false); }}
+        />
+      )}
     </div>
   );
 }
