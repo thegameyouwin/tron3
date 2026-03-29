@@ -8,12 +8,14 @@ import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useProfile } from "@/hooks/useProfile";
 import TronnlixLogo from "@/components/TronnlixLogo";
 import LanguageSelector from "@/components/LanguageSelector";
+import AccountTierBadge from "@/components/AccountTierBadge";
+import UpgradeTierModal from "@/components/UpgradeTierModal";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Wallet, Banknote, Users, TrendingUp, CandlestickChart,
   Bot, Coins, Gift, ArrowRightLeft, ArrowDownToLine, History, CreditCard,
   ShieldCheck, Lock, HelpCircle, LogOut, Sun, Moon, Shield, ChevronLeft,
-  ChevronRight, Menu, X, User
+  ChevronRight, Menu, X, User, BadgeCheck, ArrowUp
 } from "lucide-react";
 
 const sections = [
@@ -66,6 +68,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { profile } = useProfile();
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const accountTier = (profile as any)?.account_tier || "free";
+  const kycVerified = profile?.kyc_status === "verified";
 
   const totalUsd = wallets.reduce((sum, w) => {
     const price = w.crypto_id === "usdt" ? 1 : (prices.find(p => p.id === w.crypto_id)?.current_price ?? 0);
