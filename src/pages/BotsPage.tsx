@@ -516,6 +516,11 @@ const BotsPage = () => {
     return tier === "pro" || tier === "elite" || tier === "vip";
   };
 
+  const TIER_RANK: Record<string, number> = { free: 0, pro: 1, elite: 2, vip: 3 };
+  const canAccessTier = (botTier: string) => {
+    return (TIER_RANK[accountTier?.toLowerCase()] || 0) >= (TIER_RANK[botTier?.toLowerCase()] || 0);
+  };
+
   // Prepare data for PNL chart
   const pnlChartData = useMemo(() => {
     if (!userTrades.length) return [];
