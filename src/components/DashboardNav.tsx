@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   Home, TrendingUp, ArrowLeftRight, Bot, Wallet, LogOut, 
-  Moon, Sun, Shield, History, Crown, Menu, X 
+  Moon, Sun, Shield, History, Crown 
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,8 @@ const DashboardNav = () => {
 
   const [currentTier, setCurrentTier] = useState<string>("free");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Fetch user's current account tier
   useEffect(() => {
     if (!user) return;
     const fetchTier = async () => {
@@ -44,27 +44,6 @@ const DashboardNav = () => {
     };
     fetchTier();
   }, [user]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && mobileMenuOpen) {
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileMenuOpen]);
 
   const navItems = [
     { icon: Home, path: "/dashboard", label: t("nav.dashboard", "Dashboard") },
@@ -98,21 +77,77 @@ const DashboardNav = () => {
   };
 
   const showUpgrade = currentTier !== "vip";
-  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="container flex h-14 items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-2" onClick={closeMobileMenu}>
-            <TronnlixLogo size={28} />
-            <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Tronnlix
-            </span>
-          </Link>
+        <div className="container py-2">
+          {/* Top row: Logo + right controls */}
+          <div className="flex items-center justify-between gap-2">
+            <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
+              <TronnlixLogo size={28} />
+              <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Tronnlix
+              </span>
+            </Link>
 
-          {/* Desktop Navigation - Text forced visible */}
-          <div className="hidden md:flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <LanguageSelector compact />
+
+              <button
+                onClick={toggleDarkMode}
+                className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              </button>
+
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive">
+                    <Shield className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t("nav.admin", "Admin")}</span>
+                  </Button>
+                </Link>
+              )}
+
+              {showUpgrade && (
+                <Button
+                  variant="gold"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => setShowUpgradeModal(true)}
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t("upgrade", "Upgrade")}</span>
+                </Button>
+              )}
+
+              <Link to="/deposit">
+                <Button variant="gold" size="sm" className="gap-2">
+                  <Wallet className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
+                    ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="sm:hidden text-xs">
+                    ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </span>
+                </Button>
+              </Link>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Second row: Navigation links - ALWAYS VISIBLE on all screens */}
+          <div className="flex flex-wrap items-center justify-center gap-1 mt-2 sm:mt-0 sm:justify-start">
             {navItems.map((item) => {
               const active = location.pathname === item.path;
               return (
@@ -120,10 +155,14 @@ const DashboardNav = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`gap-2 text-xs ${active ? "text-primary bg-primary/10 border-b-2 border-primary rounded-b-none" : "text-muted-foreground"}`}
+                    className={`gap-1 sm:gap-2 text-xs ${
+                      active 
+                        ? "text-primary bg-primary/10 border-b-2 border-primary rounded-b-none" 
+                        : "text-muted-foreground"
+                    }`}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="inline-block text-sm font-medium text-current">
+                    <span className="inline-block text-xs sm:text-sm font-medium text-current">
                       {item.label}
                     </span>
                   </Button>
@@ -131,147 +170,10 @@ const DashboardNav = () => {
               );
             })}
           </div>
-
-          <div className="flex items-center gap-2">
-            <LanguageSelector compact />
-
-            <button
-              onClick={toggleDarkMode}
-              className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-            </button>
-
-            {isAdmin && (
-              <Link to="/admin">
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive">
-                  <Shield className="h-3.5 w-3.5" />
-                  <span className="inline-block text-current">{t("nav.admin", "Admin")}</span>
-                </Button>
-              </Link>
-            )}
-
-            {showUpgrade && (
-              <Button
-                variant="gold"
-                size="sm"
-                className="gap-1.5 text-xs hidden md:inline-flex"
-                onClick={() => setShowUpgradeModal(true)}
-              >
-                <Crown className="h-3.5 w-3.5" />
-                <span className="inline-block text-current">{t("upgrade", "Upgrade")}</span>
-              </Button>
-            )}
-
-            <Link to="/deposit">
-              <Button variant="gold" size="sm" className="gap-2">
-                <Wallet className="h-3.5 w-3.5" />
-                <span className="inline-block text-current">
-                  ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </Button>
-            </Link>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-muted-foreground hidden md:inline-flex"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-
-            <button
-              className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
         </div>
       </nav>
 
-      {/* Mobile Drawer Overlay */}
-      <div
-        className={`fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 md:hidden ${
-          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={closeMobileMenu}
-      />
-
-      {/* Mobile Drawer */}
-      <div
-        className={`fixed top-0 right-0 bottom-0 z-50 w-[80%] max-w-sm bg-background border-l border-border shadow-xl transform transition-transform duration-300 ease-out md:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <Link to="/dashboard" className="flex items-center gap-2" onClick={closeMobileMenu}>
-              <TronnlixLogo size={28} />
-              <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Tronnlix
-              </span>
-            </Link>
-            <button
-              onClick={closeMobileMenu}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 py-6 px-4 space-y-4">
-            {navItems.map((item) => {
-              const active = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-3 py-2 text-base transition-colors ${
-                    active ? "text-primary font-semibold" : "text-foreground hover:text-primary"
-                  }`}
-                  onClick={closeMobileMenu}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="inline-block">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="p-4 border-t border-border space-y-3">
-            {showUpgrade && (
-              <Button
-                variant="gold"
-                className="w-full gap-2"
-                onClick={() => {
-                  setShowUpgradeModal(true);
-                  closeMobileMenu();
-                }}
-              >
-                <Crown className="h-4 w-4" />
-                <span className="inline-block">{t("upgrade", "Upgrade Tier")}</span>
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={() => {
-                handleLogout();
-                closeMobileMenu();
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="inline-block">{t("signOut", "Sign Out")}</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
+      {/* Upgrade Tier Modal */}
       {showUpgradeModal && (
         <UpgradeTierModal
           currentTier={currentTier}
