@@ -83,7 +83,7 @@ const DashboardNav = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="container py-2">
           {/* Top row: Logo + right controls */}
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
               <TronnlixLogo size={28} />
               <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -91,7 +91,7 @@ const DashboardNav = () => {
               </span>
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <LanguageSelector compact />
 
               <button
@@ -146,26 +146,38 @@ const DashboardNav = () => {
             </div>
           </div>
 
-          {/* Second row: Navigation links - ALWAYS VISIBLE on all screens */}
-          <div className="flex flex-wrap items-center justify-center gap-1 mt-2 sm:mt-0 sm:justify-start">
+          {/* Second row: Navigation links - ALWAYS VISIBLE with inline styles to force text appearance */}
+          <div className="flex flex-wrap items-center gap-1 mt-3 sm:mt-2">
             {navItems.map((item) => {
               const active = location.pathname === item.path;
               return (
-                <Link key={item.path} to={item.path}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`gap-1 sm:gap-2 text-xs ${
-                      active 
-                        ? "text-primary bg-primary/10 border-b-2 border-primary rounded-b-none" 
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="inline-block text-xs sm:text-sm font-medium text-current">
-                      {item.label}
-                    </span>
-                  </Button>
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    backgroundColor: active ? "rgba(139, 92, 246, 0.1)" : "transparent",
+                    color: active ? "rgb(139, 92, 246)" : "hsl(var(--muted-foreground))",
+                    textDecoration: "none",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span style={{ display: "inline", fontSize: "13px", fontWeight: active ? "600" : "500" }}>
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
