@@ -1,10 +1,9 @@
-import { ArrowLeft, TrendingUp, Clock, BarChart3, Activity, Settings, Power, RefreshCw, ChevronDown } from "lucide-react";
+import { ArrowLeft, Power, Settings, ChevronDown, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 const TRADEABLE = [
   "bitcoin", "ethereum", "solana", "binancecoin", "ripple",
@@ -29,18 +28,45 @@ function formatDuration(createdAt: string) {
   return `${mins}m`;
 }
 
+function generateSignalCode(botId: string) {
+  return `BOT-${botId.substring(0, 2).toUpperCase()}-${botId.substring(2, 10).toUpperCase()}`;
+}
+
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.floor(seconds / 3600)}h`;
+}
+
 export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: BotAnalyticsProps) {
   const { getSymbol, prices } = useCryptoPrices();
-  const [activeTab, setActiveTab] = useState<"analytics" | "settings">("analytics");
+  const [activeTab, setActiveTab] = useState<"running" | "settings">("running");
   const [pairDropdownOpen, setPairDropdownOpen] = useState(false);
   const [pairSearch, setPairSearch] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const [botPhase, setBotPhase] = useState<"buying" | "selling">("buying");
 
   const stakedAmount = Number(bot.config?.staked_amount || 0);
   const profit = Number(bot.total_profit || 0);
-  const profitRate = stakedAmount > 0 ? ((profit / stakedAmount) * 100) : 0;
   const pair = `${getSymbol(bot.crypto_id)}/USDT`;
-  const duration = formatDuration(bot.created_at);
+  const stratLabel = bot.strategy === "market_making" ? "Grid" : bot.strategy;
   const returnAmount = stakedAmount + profit;
+  const signalCode = generateSignalCode(bot.id);
+
+  // Timer that counts up from bot start, resets every ~3 min cycle
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const totalSec = Math.floor((Date.now() - new Date(bot.created_at).getTime()) / 1000);
+      const cycleSec = totalSec % 180; // 3 minute cycle
+      setElapsed(cycleSec);
+      setBotPhase(cycleSec < 90 ? "buying" : "selling");
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [bot.created_at]);
+
+  const timerDisplay = `${Math.floor((180 - (elapsed % 180)) / 60)}:${String((180 - (elapsed % 180)) % 60).padStart(2, "0")}`;
+  const progressPercent = ((elapsed % 180) / 180) * 100;
 
   // Filter pairs for switching
   const filteredPairs = useMemo(() => {
@@ -60,34 +86,15 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
         .from("bot_trades")
         .select("*")
         .eq("bot_id", bot.id)
-        .order("created_at", { ascending: true })
-        .limit(100);
+        .order("created_at", { ascending: false })
+        .limit(50);
       return data || [];
     },
-    refetchInterval: 5000,
+    refetchInterval: 3000,
   });
-
-  // Build cumulative PNL chart data
-  const chartData = useMemo(() => {
-    let cumulative = 0;
-    return trades.map((t: any, i: number) => {
-      cumulative += Number(t.pnl || 0);
-      return {
-        index: i,
-        time: new Date(t.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        pnl: cumulative,
-        price: Number(t.price),
-      };
-    });
-  }, [trades]);
 
   // Stats
   const totalTrades = bot.total_trades || 0;
-  const buyTrades = trades.filter((t: any) => t.side === "buy").length;
-  const sellTrades = trades.filter((t: any) => t.side === "sell").length;
-  const avgTradeSize = trades.length > 0
-    ? trades.reduce((s: number, t: any) => s + Number(t.total || 0), 0) / trades.length
-    : 0;
   const winRate = trades.length > 0
     ? ((trades.filter((t: any) => Number(t.pnl || 0) > 0).length / trades.length) * 100)
     : 0;
@@ -99,7 +106,6 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
       .eq("id", bot.id);
     setPairDropdownOpen(false);
     setPairSearch("");
-    // The parent's refetch will pick up the change
   };
 
   return (
@@ -110,27 +116,28 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
           <ArrowLeft className="h-4 w-4" /> Back to Running Bots
         </button>
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">{bot.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              {bot.is_ai && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">AI</span>}
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">{bot.strategy === "market_making" ? "Grid" : bot.strategy}</span>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">{bot.name}</h2>
+              <p className="text-xs text-muted-foreground">{pair} · {stratLabel}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400 font-medium">Running</span>
-          </div>
+          <span className="text-[11px] font-bold px-3 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+            LIVE
+          </span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-border bg-card">
         <button
-          onClick={() => setActiveTab("analytics")}
-          className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === "analytics" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setActiveTab("running")}
+          className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === "running" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <BarChart3 className="h-3.5 w-3.5 inline mr-1" /> Analytics
+          Running Bot
         </button>
         <button
           onClick={() => setActiveTab("settings")}
@@ -140,123 +147,113 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
         </button>
       </div>
 
-      {activeTab === "analytics" ? (
-        <>
-          {/* Profit Rate Hero */}
-          <div className="px-4 py-5 flex items-center gap-6 border-b border-border bg-card">
-            <div className="flex-1">
-              <p className={`text-3xl font-bold tabular-nums ${profitRate >= 0 ? "text-emerald-400" : "text-destructive"}`}>
-                {profitRate >= 0 ? "+" : ""}{profitRate.toFixed(2)}%
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Profit Rate</p>
+      {activeTab === "running" ? (
+        <div className="flex-1 overflow-y-auto">
+          {/* Execution Status Card */}
+          <div className="mx-4 mt-4 bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-muted-foreground">Bot executing trades...</span>
+              <span className="text-sm font-bold text-primary tabular-nums">{timerDisplay}</span>
             </div>
-            <div className="w-28 h-14">
-              {chartData.length > 1 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData.slice(-20)}>
-                    <defs>
-                      <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="pnl" stroke="hsl(var(--primary))" fill="url(#pnlGradient)" strokeWidth={2} dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <MiniSparkline />
-              )}
+            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden mb-4">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-1000"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-secondary/50 border border-border rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground mb-1">Staked</p>
+                <p className="text-sm font-bold text-foreground">${stakedAmount.toFixed(2)}</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground mb-1">Win Rate</p>
+                <p className="text-sm font-bold text-foreground">{winRate.toFixed(2)}%</p>
+              </div>
+              <div className="bg-secondary/50 border border-border rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground mb-1">Profit</p>
+                <p className={`text-sm font-bold ${profit > 0 ? "text-emerald-400" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {profit > 0 ? `+$${profit.toFixed(2)}` : profit < 0 ? `-$${Math.abs(profit).toFixed(2)}` : "Pending..."}
+                </p>
+              </div>
+            </div>
+
+            {/* Signal Code */}
+            <div className="mt-3 bg-secondary/50 border border-border rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground mb-1">Signal Code</p>
+              <p className="text-sm font-bold text-primary font-mono">{signalCode}</p>
             </div>
           </div>
 
-          {/* Key Stats */}
-          <div className="overflow-y-auto flex-1">
-            <div className="px-4 py-4">
-              <div className="bg-card border border-border rounded-xl divide-y divide-border">
-                {[
-                  { label: "Pair", value: pair },
-                  { label: "Investment", value: `${stakedAmount.toFixed(2)} USDT`, color: "text-foreground" },
-                  { label: "Profit Earned", value: `${profit >= 0 ? "+" : ""}${profit.toFixed(4)} USDT`, color: profit >= 0 ? "text-emerald-400" : "text-destructive" },
-                  { label: "Duration", value: duration },
-                  { label: "Total Trades", value: totalTrades.toLocaleString() },
-                  { label: "Buy/Sell", value: `${buyTrades} / ${sellTrades}` },
-                  { label: "Win Rate", value: `${winRate.toFixed(1)}%` },
-                  { label: "Avg Trade Size", value: `$${avgTradeSize.toFixed(2)}` },
-                ].map(row => (
-                  <div key={row.label} className="flex items-center justify-between px-4 py-3">
-                    <span className="text-xs text-muted-foreground">{row.label}</span>
-                    <span className={`text-sm font-medium ${row.color || "text-foreground"}`}>{row.value}</span>
-                  </div>
-                ))}
+          {/* Phase Banner */}
+          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl border flex items-center gap-2 ${
+            botPhase === "buying"
+              ? "bg-emerald-500/10 border-emerald-500/30"
+              : "bg-destructive/10 border-destructive/30"
+          }`}>
+            {botPhase === "buying" ? (
+              <>
+                <TrendingUp className="h-4 w-4 text-emerald-400" />
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">ACCUMULATING — BOT IS BUYING</span>
+              </>
+            ) : (
+              <>
+                <TrendingDown className="h-4 w-4 text-destructive" />
+                <span className="text-xs font-bold text-destructive uppercase tracking-wide">DISTRIBUTING — BOT IS SELLING</span>
+              </>
+            )}
+          </div>
+
+          {/* Live Trade Feed */}
+          <div className="mx-4 mt-3 mb-4 bg-card border border-border rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-bold text-foreground">Live Trade Feed</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-medium text-emerald-400">LIVE</span>
               </div>
             </div>
-
-            {/* PNL Chart */}
-            {chartData.length > 1 && (
-              <div className="px-4 pb-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" /> Cumulative PNL
-                </h3>
-                <div className="bg-card border border-border rounded-xl p-4">
-                  <div className="h-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                          }}
-                          labelStyle={{ color: "hsl(var(--foreground))" }}
-                        />
-                        <Line type="monotone" dataKey="pnl" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+            {trades.length === 0 ? (
+              <div className="px-4 py-8 text-center text-muted-foreground text-xs">
+                Waiting for first trade...
               </div>
-            )}
-
-            {/* Recent Trades */}
-            {trades.length > 0 && (
-              <div className="px-4 pb-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" /> Recent Trades
-                </h3>
-                <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-muted-foreground border-b border-border">
-                        <th className="text-left px-3 py-2">Side</th>
-                        <th className="text-right px-3 py-2">Price</th>
-                        <th className="text-right px-3 py-2">Amount</th>
-                        <th className="text-right px-3 py-2">PNL</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trades.slice(-10).reverse().map((t: any) => (
-                        <tr key={t.id} className="border-b border-border/30">
-                          <td className={`px-3 py-2 font-medium ${t.side === "buy" ? "text-emerald-400" : "text-destructive"}`}>
-                            {t.side === "buy" ? "Long" : "Short"}
-                          </td>
-                          <td className="px-3 py-2 text-right text-foreground tabular-nums">${Number(t.price).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                          <td className="px-3 py-2 text-right text-foreground tabular-nums">{Number(t.amount).toFixed(4)}</td>
-                          <td className={`px-3 py-2 text-right tabular-nums ${(t.pnl || 0) >= 0 ? "text-emerald-400" : "text-destructive"}`}>
-                            {(t.pnl || 0) >= 0 ? "+" : ""}${Number(t.pnl || 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            ) : (
+              <div className="divide-y divide-border/30">
+                {trades.slice(0, 15).map((t: any) => {
+                  const sym = getSymbol(t.crypto_id);
+                  return (
+                    <div key={t.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {t.side === "buy" ? (
+                          <span className="flex items-center gap-1 text-emerald-400 font-bold w-14">
+                            <TrendingUp className="h-3 w-3" /> BUY
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-destructive font-bold w-14">
+                            <TrendingDown className="h-3 w-3" /> SELL
+                          </span>
+                        )}
+                        <span className="text-foreground tabular-nums font-medium">
+                          {Number(t.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-foreground tabular-nums">
+                          {Number(t.amount).toFixed(4)} {sym}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums w-8 text-right">
+                          {timeAgo(t.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        </>
+        </div>
       ) : (
         /* Settings Tab */
         <div className="flex-1 overflow-y-auto">
@@ -325,6 +322,8 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
                   { label: "Order Size", value: `${(bot.config?.order_size || 0.1)}` },
                   { label: "Max Orders", value: `${(bot.config?.max_orders || 5)}` },
                   { label: "Staked Amount", value: `$${stakedAmount.toFixed(2)} USDT` },
+                  { label: "Duration", value: formatDuration(bot.created_at) },
+                  { label: "Total Trades", value: totalTrades.toLocaleString() },
                 ].map(row => (
                   <div key={row.label} className="flex items-center justify-between py-2.5">
                     <span className="text-xs text-muted-foreground">{row.label}</span>
@@ -334,7 +333,7 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
               </div>
             </div>
 
-            {/* Summary */}
+            {/* Withdrawal Summary */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Withdrawal Summary</h3>
               <div className="space-y-2">
@@ -375,17 +374,5 @@ export default function BotAnalyticsView({ bot, onBack, onUnstake, unstaking }: 
         )}
       </div>
     </div>
-  );
-}
-
-function MiniSparkline() {
-  const points = Array.from({ length: 20 }, (_, i) => {
-    const y = 20 + Math.sin(i * 0.5) * 8 + Math.random() * 6;
-    return `${i * 5},${40 - y}`;
-  }).join(" ");
-  return (
-    <svg viewBox="0 0 95 40" className="w-full h-full">
-      <polyline fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" points={points} />
-    </svg>
   );
 }

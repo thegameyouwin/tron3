@@ -755,10 +755,17 @@ const BotsPage = () => {
                 </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                  <input
-                    type="number"
+                   <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*\.?[0-9]*"
                     value={stakeAmount}
-                    onChange={e => setStakeAmount(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                        setStakeAmount(val);
+                      }
+                    }}
                     placeholder={bot.min_stake.toFixed(2)}
                     className="w-full h-12 pl-7 pr-16 rounded-lg bg-secondary border border-border text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
