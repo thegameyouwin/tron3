@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import DemoModeBanner from "@/components/DemoModeBanner";
 import DemoModeToggle from "@/components/DemoModeToggle";
+import TradePopup, { emitTradeAlert } from "@/components/TradePopup";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
