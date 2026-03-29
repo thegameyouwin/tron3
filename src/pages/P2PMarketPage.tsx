@@ -976,9 +976,7 @@ const P2PMarketPage = () => {
           <div className="flex items-start gap-2">
             <Shield className="h-4 w-4 text-primary mt-0.5" />
             <div className="text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Simulator Mode - Demo Trading</p>
-              <p>All transactions are simulated. Use Deposit to add funds, Withdraw to send to external addresses. Your crypto addresses are shown in the deposit modal.</p>
-            </div>
+             </div>
           </div>
         </div>
       </div>
