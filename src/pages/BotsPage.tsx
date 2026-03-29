@@ -656,9 +656,18 @@ const BotsPage = () => {
     const roi = calcROI(bot.total_profit, bot.config, bot.created_at);
     const winRate = calcWinRate(bot.total_trades, bot.total_profit);
     const runtime = formatRuntime(bot.created_at);
+    const locked = !canAccessTier(tier) && !demoMode;
 
     return (
-      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleSelectBot(bot)}>
+      <div className={`bg-card border border-border rounded-xl p-3 sm:p-4 relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors ${locked ? "opacity-70" : ""}`} onClick={() => handleSelectBot(bot)}>
+        {locked && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-1">
+              <Lock className="h-5 w-5 text-muted-foreground" />
+              <span className="text-[10px] font-bold text-muted-foreground">Upgrade to {tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 mb-3 flex-wrap">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{stratLabel}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${TIER_COLORS[tier] || TIER_COLORS.free}`}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
@@ -686,7 +695,7 @@ const BotsPage = () => {
             <Users className="h-3 w-3" /><span>{(bot.bot_users || 0).toLocaleString()} users</span><span className="mx-1">•</span><span>{bot.runs || 0} runs</span>
           </div>
           <Button size="sm" className="text-[11px] h-7 bg-profit hover:bg-profit/80 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleSelectBot(bot); }}>
-            <Copy className="h-3 w-3" /> Copy
+            {locked ? <Lock className="h-3 w-3" /> : <Copy className="h-3 w-3" />} {locked ? "Locked" : "Copy"}
           </Button>
         </div>
       </div>
