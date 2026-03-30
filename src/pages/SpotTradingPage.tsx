@@ -102,6 +102,9 @@ const SpotTradingPage = () => {
     const saved = localStorage.getItem("orderBookAmountUnit");
     return saved === "quote" ? "quote" : "base";
   });
+  const [stopLoss, setStopLoss] = useState("");
+  const [takeProfit, setTakeProfit] = useState("");
+  const [orderBookTick, setOrderBookTick] = useState(0);
   const chartRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -182,15 +185,22 @@ const SpotTradingPage = () => {
       .reverse();
   }, [botTrades]);
 
-  // Deterministic order book
+  // Live order book - updates every 1.5s
   const coinSeed = useMemo(
     () => selectedCoin.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
     [selectedCoin]
   );
-  const orderBook = useMemo(
-    () => generateDeterministicBook(currentPrice, coinSeed),
-    [currentPrice, coinSeed]
-  );
+
+  useEffect(() => {
+    const interval = setInterval(() => setOrderBookTick(t => t + 1), 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const orderBook = useMemo(() => {
+    const dynamicSeed = coinSeed + orderBookTick;
+    return generateDeterministicBook(currentPrice, dynamicSeed);
+  }, [currentPrice, coinSeed, orderBookTick]);
+
   const maxAskAmount = Math.max(...orderBook.asks.map(a => a.amount), 1);
   const maxBidAmount = Math.max(...orderBook.bids.map(b => b.amount), 1);
 
@@ -693,6 +703,48 @@ const SpotTradingPage = () => {
                           minimumFractionDigits: 2,
                         })}`
                       : `${sym}0.00`}
+                  </div>
+                </div>
+
+                {/* TP / SL */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">Take Profit</label>
+                    <input
+                      type="number"
+                      value={takeProfit}
+                      onChange={e => setTakeProfit(e.target.value)}
+                      placeholder="None"
+                      className="w-full h-8 rounded-lg bg-secondary border border-border px-2 text-xs text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+                      step="any"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">Stop Loss</label>
+                    <input
+                      type="number"
+                      value={stopLoss}
+                      onChange={e => setStopLoss(e.target.value)}
+                      placeholder="None"
+                      className="w-full h-8 rounded-lg bg-secondary border border-border px-2 text-xs text-foreground focus:outline-none focus:border-destructive transition-colors"
+                      step="any"
+                    />
+                  </div>
+                </div>
+
+                {/* Position summary */}
+                <div className="bg-secondary/50 rounded-lg p-2.5 space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Position Size</span>
+                    <span className="text-foreground tabular-nums">{total > 0 ? `${sym}${total.toFixed(2)}` : "0.00"} USDT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Entry Price</span>
+                    <span className="text-foreground tabular-nums">{effectivePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fee (0.04%)</span>
+                    <span className="text-foreground tabular-nums">{(total * 0.0004).toFixed(4)} USDT</span>
                   </div>
                 </div>
 

@@ -508,22 +508,24 @@ const Index = () => {
             Supported <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Wallets</span>
           </h2>
           <p className="text-muted-foreground mb-8 text-sm">Connect your favorite wallet and start trading</p>
-          <div className="flex flex-wrap justify-center gap-6 md:gap-8 max-w-lg mx-auto">
+          <div className="flex flex-wrap justify-center gap-6 md:gap-8 max-w-2xl mx-auto">
             {[
-              { name: "Trust Wallet", emoji: "🛡️" },
-              { name: "SafePal", emoji: "🔐" },
-              { name: "Binance", emoji: "🟡" },
-              { name: "Bybit", emoji: "📊" },
-              { name: "OKX", emoji: "⚡" },
-              { name: "Coinbase", emoji: "🔵" },
-              { name: "Bitget", emoji: "🟢" },
-              { name: "Exodus", emoji: "🚀" },
+              { name: "Trust Wallet", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Trust_Wallet_Token_%28TWT%29_Logo.svg/200px-Trust_Wallet_Token_%28TWT%29_Logo.svg.png" },
+              { name: "SafePal", logo: "https://assets.coingecko.com/coins/images/13905/small/sfp.png" },
+              { name: "Binance", logo: "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" },
+              { name: "Bybit", logo: "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png" },
+              { name: "OKX", logo: "https://assets.coingecko.com/markets/images/96/small/WeChat_Image_20220117220452.png" },
+              { name: "Coinbase", logo: "https://assets.coingecko.com/markets/images/23/small/Coinbase_Coin_Primary.png" },
+              { name: "Bitget", logo: "https://assets.coingecko.com/markets/images/540/small/Bitget.png" },
+              { name: "Exodus", logo: "https://assets.coingecko.com/coins/images/33498/small/Exodus-Logo-200px.png" },
+              { name: "MetaMask", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/200px-MetaMask_Fox.svg.png" },
+              { name: "Phantom", logo: "https://assets.coingecko.com/coins/images/22984/small/Phantom-Icon_Purple_rounded.png" },
             ].map(w => (
-              <div key={w.name} className="flex flex-col items-center gap-2">
-                <div className="w-14 h-14 rounded-xl bg-secondary border border-border flex items-center justify-center text-2xl hover:border-primary/40 transition-colors">
-                  {w.emoji}
+              <div key={w.name} className="flex flex-col items-center gap-2 group">
+                <div className="w-14 h-14 rounded-xl bg-secondary border border-border flex items-center justify-center overflow-hidden hover:border-primary/40 transition-all group-hover:scale-105">
+                  <img src={w.logo} alt={w.name} className="w-8 h-8 object-contain" loading="lazy" />
                 </div>
-                <span className="text-[11px] text-muted-foreground">{w.name}</span>
+                <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">{w.name}</span>
               </div>
             ))}
           </div>

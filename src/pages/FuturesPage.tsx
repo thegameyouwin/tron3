@@ -66,13 +66,17 @@ const FuturesPage = () => {
   const [searchParams] = useSearchParams();
   const [selectedCoin, setSelectedCoin] = useState(searchParams.get("coin") || "bitcoin");
   const [side, setSide] = useState<"long" | "short">("long");
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
-  const [amount, setAmount] = useState("");           // in USDT
+  const [orderType, setOrderType] = useState<"market" | "limit" | "stop_limit">("market");
+  const [amount, setAmount] = useState("");
   const [leverage, setLeverage] = useState(10);
   const [limitPrice, setLimitPrice] = useState("");
+  const [stopPrice, setStopPrice] = useState("");
+  const [takeProfit, setTakeProfit] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
   const [pairDropdownOpen, setPairDropdownOpen] = useState(false);
   const [pairSearch, setPairSearch] = useState("");
   const [positions, setPositions] = useState<Position[]>([]);
+  const [orderBookTick, setOrderBookTick] = useState(0);
   const [amountUnit, setAmountUnit] = useState<"base" | "quote">(() => {
     const saved = localStorage.getItem("futuresOrderBookAmountUnit");
     return saved === "quote" ? "quote" : "base";
@@ -130,11 +134,17 @@ const FuturesPage = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Deterministic order book for the selected pair
+  // Live order book - refreshes every 1.5s
   const coinSeed = selectedCoin.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setOrderBookTick(t => t + 1), 1500);
+    return () => clearInterval(interval);
+  }, []);
+
   const orderBook = useMemo(
-    () => generateDeterministicBook(currentPrice, coinSeed),
-    [currentPrice, coinSeed]
+    () => generateDeterministicBook(currentPrice, coinSeed + orderBookTick),
+    [currentPrice, coinSeed, orderBookTick]
   );
   const maxAskAmount = Math.max(...orderBook.asks.map(a => a.amount), 1);
   const maxBidAmount = Math.max(...orderBook.bids.map(b => b.amount), 1);
@@ -445,47 +455,37 @@ const FuturesPage = () => {
 
             {/* Order Form */}
             <div className="lg:col-span-3 bg-card border border-border rounded-xl p-3 sm:p-4">
-              {/* Long/Short toggle */}
-              <div className="flex rounded-lg overflow-hidden border border-border mb-4">
-                <button
-                  onClick={() => setSide("long")}
-                  className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
-                    side === "long" ? "bg-profit text-white" : "bg-card text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  Long
-                </button>
-                <button
-                  onClick={() => setSide("short")}
-                  className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
-                    side === "short" ? "bg-loss text-white" : "bg-card text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  Short
-                </button>
+              {/* Cross / Isolated + Leverage */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex gap-1">
+                  <button className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary font-medium">Cross</button>
+                  <button className="text-[10px] px-2 py-1 rounded text-muted-foreground hover:text-foreground">Isolated</button>
+                </div>
+                <span className="text-xs font-bold text-primary">{leverage}x</span>
               </div>
 
-              {/* Market/Limit */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setOrderType("market")}
-                  className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${
-                    orderType === "market" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Market
-                </button>
-                <button
-                  onClick={() => setOrderType("limit")}
-                  className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${
-                    orderType === "limit" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Limit
-                </button>
+              {/* Market/Limit/Stop Limit */}
+              <div className="flex gap-1 mb-4">
+                {(["market", "limit", "stop_limit"] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setOrderType(t)}
+                    className={`flex-1 text-[10px] py-1.5 rounded-lg transition-all ${
+                      orderType === t ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t === "stop_limit" ? "Stop Limit" : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
               </div>
 
-              <div className="space-y-3">
+              {/* Available */}
+              <div className="flex justify-between text-[11px] text-muted-foreground mb-3">
+                <span>Avail.</span>
+                <span>{sym}{usdtBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} USDT</span>
+              </div>
+
+              <div className="space-y-2.5">
                 {/* Leverage Slider */}
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -505,57 +505,144 @@ const FuturesPage = () => {
                   </div>
                 </div>
 
-                {orderType === "limit" && (
+                {/* Stop Price (for stop limit) */}
+                {orderType === "stop_limit" && (
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Limit Price ({sym})</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Stop Price ({sym})</label>
                     <input
                       type="number"
-                      value={limitPrice}
-                      onChange={e => setLimitPrice(e.target.value)}
-                      placeholder={currentPrice.toString()}
-                      className="w-full h-10 rounded-lg bg-secondary border border-border px-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                      value={stopPrice}
+                      onChange={e => setStopPrice(e.target.value)}
+                      placeholder="Trigger price"
+                      className="w-full h-9 rounded-lg bg-secondary border border-border px-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                      step="any"
                     />
+                  </div>
+                )}
+
+                {(orderType === "limit" || orderType === "stop_limit") && (
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Price ({sym})</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={limitPrice}
+                        onChange={e => setLimitPrice(e.target.value)}
+                        placeholder={currentPrice.toString()}
+                        className="w-full h-9 rounded-lg bg-secondary border border-border px-3 pr-14 text-sm text-foreground focus:outline-none focus:border-primary"
+                        step="any"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">USDT</span>
+                    </div>
                   </div>
                 )}
 
                 {/* Amount (USDT) */}
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Amount (USDT)</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full h-10 rounded-lg bg-secondary border border-border px-3 text-sm text-foreground focus:outline-none focus:border-primary"
-                  />
+                  <label className="block text-xs text-muted-foreground mb-1">Size (USDT)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full h-9 rounded-lg bg-secondary border border-border px-3 pr-14 text-sm text-foreground focus:outline-none focus:border-primary"
+                      step="any"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">USDT</span>
+                  </div>
+                  <div className="flex gap-1 mt-1.5">
+                    {[10, 25, 50, 75, 100].map(pct => (
+                      <button
+                        key={pct}
+                        onClick={() => {
+                          const val = usdtBalance * (pct / 100) * leverage;
+                          setAmount(val.toFixed(2));
+                        }}
+                        className="flex-1 text-[10px] py-1 rounded-md bg-secondary text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Margin & Liquidation */}
-                <div className="bg-secondary/50 rounded-lg p-3 space-y-1 text-xs">
+                {/* TP / SL */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">TP1</label>
+                    <input
+                      type="number"
+                      value={takeProfit}
+                      onChange={e => setTakeProfit(e.target.value)}
+                      placeholder="None"
+                      className="w-full h-8 rounded-lg bg-secondary border border-border px-2 text-xs text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+                      step="any"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">SL Price</label>
+                    <input
+                      type="number"
+                      value={stopLoss}
+                      onChange={e => setStopLoss(e.target.value)}
+                      placeholder="None"
+                      className="w-full h-8 rounded-lg bg-secondary border border-border px-2 text-xs text-foreground focus:outline-none focus:border-destructive transition-colors"
+                      step="any"
+                    />
+                  </div>
+                </div>
+
+                {/* Position summary */}
+                <div className="bg-secondary/50 rounded-lg p-2.5 space-y-1 text-[11px]">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Margin Required</span>
-                    <span className="text-foreground tabular-nums">{sym}{margin.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Position Size</span>
+                    <span className="text-foreground tabular-nums">{sym}{totalPositionSize.toFixed(2)} USDT</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Liquidation Price</span>
-                    <span className={liquidationPrice && liquidationPrice > 0 ? (side === "long" ? "text-loss" : "text-loss") : "text-foreground"}>
+                    <span className="text-muted-foreground">Entry Price</span>
+                    <span className="text-foreground tabular-nums">{effectivePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Est. Liq. Price</span>
+                    <span className="text-destructive tabular-nums">
                       {liquidationPrice ? sym + liquidationPrice.toFixed(2) : "—"}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fee (0.04%)</span>
+                    <span className="text-foreground tabular-nums">{(totalPositionSize * 0.0004).toFixed(4)} USDT</span>
+                  </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
-                  {demoMode ? "Demo" : "Available"} USDT: {sym}{usdtBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
+                {/* Wallet info */}
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Wallet Balance</span>
+                  <span>{sym}{usdtBalance.toFixed(2)} USDT</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Margin In Use</span>
+                  <span>{sym}{margin.toFixed(2)} USDT</span>
+                </div>
 
-                <Button
-                  variant={side === "long" ? "cta" : "destructive"}
-                  className="w-full h-11"
-                  onClick={openPosition}
-                  disabled={walletsLoading || !amount || Number(amount) <= 0}
-                >
-                  {side === "long" ? "Open Long" : "Open Short"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="cta"
+                    className="flex-1 h-10 text-sm"
+                    onClick={() => { setSide("long"); openPosition(); }}
+                    disabled={walletsLoading || !amount || Number(amount) <= 0}
+                  >
+                    📈 Buy/Long
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1 h-10 text-sm"
+                    onClick={() => { setSide("short"); openPosition(); }}
+                    disabled={walletsLoading || !amount || Number(amount) <= 0}
+                  >
+                    📉 Sell/Short
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

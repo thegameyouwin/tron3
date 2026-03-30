@@ -35,7 +35,7 @@ const ALL_CRYPTOS = [
   { id: "stellar", name: "Stellar", symbol: "XLM" },
 ];
 
-type Tab = "overview" | "transactions" | "wallets" | "bots" | "users" | "settings";
+type Tab = "overview" | "transactions" | "wallets" | "bots" | "users" | "kyc" | "roles" | "settings";
 
 // Helper: format large numbers
 const formatNumber = (num: number) => {
@@ -43,6 +43,194 @@ const formatNumber = (num: number) => {
   if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
   if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
   return num.toFixed(2);
+};
+
+// KYC Management Tab
+const KYCManagementTab = ({ inputClass }: { inputClass: string }) => {
+  const [kycDocs, setKycDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    const fetchKYC = async () => {
+      const { data } = await supabase.from("kyc_documents").select("*").order("created_at", { ascending: false });
+      setKycDocs(data || []);
+      setLoading(false);
+    };
+    fetchKYC();
+  }, []);
+
+  const updateKYCStatus = async (id: string, status: string, userId: string) => {
+    await supabase.from("kyc_documents").update({ status }).eq("id", id);
+    if (status === "approved") {
+      await supabase.from("profiles").update({ kyc_status: "verified" }).eq("user_id", userId);
+    }
+    setKycDocs(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+    toast.success(`KYC document ${status}`);
+  };
+
+  const filtered = filter === "all" ? kycDocs : kycDocs.filter(d => d.status === filter);
+  const pendingCount = kycDocs.filter(d => d.status === "pending").length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-display font-bold text-foreground">KYC Verification</h2>
+        {pendingCount > 0 && (
+          <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-1 rounded-full font-medium">{pendingCount} pending</span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        {["all", "pending", "approved", "rejected"].map(f => (
+          <Button key={f} variant={filter === f ? "gold" : "ghost"} size="sm" onClick={() => setFilter(f)} className="capitalize text-xs">
+            {f}
+          </Button>
+        ))}
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : filtered.length === 0 ? (
+        <p className="text-muted-foreground text-sm text-center py-12">No KYC documents found.</p>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-3 px-4">User ID</th>
+                  <th className="text-left py-3 px-4">Document Type</th>
+                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-left py-3 px-4">Submitted</th>
+                  <th className="text-right py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((doc: any) => (
+                  <tr key={doc.id} className="border-b border-border/50 hover:bg-secondary/30">
+                    <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{doc.user_id.slice(0, 12)}...</td>
+                    <td className="py-3 px-4 text-foreground capitalize">{doc.document_type.replace(/_/g, " ")}</td>
+                    <td className="py-3 px-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        doc.status === "approved" ? "bg-profit/10 text-profit" :
+                        doc.status === "rejected" ? "bg-loss/10 text-loss" :
+                        "bg-primary/10 text-primary"
+                      }`}>{doc.status}</span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-right">
+                      {doc.status === "pending" && (
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-profit hover:bg-profit/10" onClick={() => updateKYCStatus(doc.id, "approved", doc.user_id)}>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-loss hover:bg-loss/10" onClick={() => updateKYCStatus(doc.id, "rejected", doc.user_id)}>
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Roles Management Tab
+const RolesManagementTab = ({ inputClass }: { inputClass: string }) => {
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newUserId, setNewUserId] = useState("");
+  const [newRole, setNewRole] = useState<"admin" | "moderator" | "user">("moderator");
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const { data } = await supabase.from("user_roles").select("*").order("created_at", { ascending: false });
+      setRoles(data || []);
+      setLoading(false);
+    };
+    fetchRoles();
+  }, []);
+
+  const addRole = async () => {
+    if (!newUserId) return toast.error("Enter a user ID");
+    const { error } = await supabase.from("user_roles").insert({ user_id: newUserId, role: newRole });
+    if (error) return toast.error(error.message);
+    const { data } = await supabase.from("user_roles").select("*").order("created_at", { ascending: false });
+    setRoles(data || []);
+    setNewUserId("");
+    toast.success(`Role ${newRole} added`);
+  };
+
+  const removeRole = async (id: string) => {
+    await supabase.from("user_roles").delete().eq("id", id);
+    setRoles(prev => prev.filter(r => r.id !== id));
+    toast.success("Role removed");
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-display font-bold text-foreground">User Roles Management</h2>
+
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><UserPlus className="h-4 w-4" /> Assign Role</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" value={newUserId} onChange={e => setNewUserId(e.target.value)} placeholder="User ID" className={inputClass} />
+          <select value={newRole} onChange={e => setNewRole(e.target.value as any)} className={inputClass}>
+            <option value="admin">Admin</option>
+            <option value="moderator">Moderator</option>
+            <option value="user">User</option>
+          </select>
+          <Button variant="gold" onClick={addRole}>Assign Role</Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : roles.length === 0 ? (
+        <p className="text-muted-foreground text-sm text-center py-12">No custom roles assigned.</p>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-3 px-4">User ID</th>
+                  <th className="text-left py-3 px-4">Role</th>
+                  <th className="text-left py-3 px-4">Assigned</th>
+                  <th className="text-right py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roles.map((r: any) => (
+                  <tr key={r.id} className="border-b border-border/50 hover:bg-secondary/30">
+                    <td className="py-3 px-4 text-xs font-mono text-muted-foreground">{r.user_id.slice(0, 12)}...</td>
+                    <td className="py-3 px-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        r.role === "admin" ? "bg-primary/10 text-primary" :
+                        r.role === "moderator" ? "bg-accent/10 text-accent" :
+                        "bg-secondary text-muted-foreground"
+                      }`}>{r.role}</span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-right">
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-loss hover:bg-loss/10" onClick={() => removeRole(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const AdminPage = () => {
@@ -210,6 +398,8 @@ const AdminPage = () => {
     { key: "wallets", label: "Wallets", icon: CreditCard },
     { key: "bots", label: "Bots", icon: Bot },
     { key: "users", label: "Users", icon: Users },
+    { key: "kyc", label: "KYC", icon: ShieldCheck },
+    { key: "roles", label: "Roles", icon: Shield },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -690,7 +880,16 @@ const AdminPage = () => {
           </div>
         )}
 
-        {/* SETTINGS */}
+        {/* KYC MANAGEMENT */}
+        {tab === "kyc" && (
+          <KYCManagementTab inputClass={inputClass} />
+        )}
+
+        {/* ROLES MANAGEMENT */}
+        {tab === "roles" && (
+          <RolesManagementTab inputClass={inputClass} />
+        )}
+
         {tab === "settings" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
