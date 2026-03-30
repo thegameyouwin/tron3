@@ -619,6 +619,12 @@ const BotsPage = () => {
           </div>
         )}
       </div>
+      {stopSummary && (
+        <BotStopSummary
+          {...stopSummary}
+          onClose={() => setStopSummary(null)}
+        />
+      )}
     </DashboardLayout>
   );
 };

@@ -501,6 +501,36 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Supported Wallets */}
+      <section className="py-16 border-t border-border">
+        <div className="container text-center">
+          <h2 className="text-2xl font-display font-bold mb-2">
+            Supported <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Wallets</span>
+          </h2>
+          <p className="text-muted-foreground mb-8 text-sm">Connect your favorite wallet and start trading</p>
+          <div className="flex flex-wrap justify-center gap-6 md:gap-8 max-w-lg mx-auto">
+            {[
+              { name: "Trust Wallet", emoji: "🛡️" },
+              { name: "SafePal", emoji: "🔐" },
+              { name: "Binance", emoji: "🟡" },
+              { name: "Bybit", emoji: "📊" },
+              { name: "OKX", emoji: "⚡" },
+              { name: "Coinbase", emoji: "🔵" },
+              { name: "Bitget", emoji: "🟢" },
+              { name: "Exodus", emoji: "🚀" },
+            ].map(w => (
+              <div key={w.name} className="flex flex-col items-center gap-2">
+                <div className="w-14 h-14 rounded-xl bg-secondary border border-border flex items-center justify-center text-2xl hover:border-primary/40 transition-colors">
+                  {w.emoji}
+                </div>
+                <span className="text-[11px] text-muted-foreground">{w.name}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-6">and more...</p>
+        </div>
+      </section>
+
       {/* Newsletter CTA */}
       <section className="py-16">
         <div className="container">
