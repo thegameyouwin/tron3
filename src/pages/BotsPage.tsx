@@ -210,7 +210,7 @@ const BotsPage = () => {
       const side = lastTrade.side === "buy" ? "Long 🔼" : "Short 🔽";
       const pnl = lastTrade.pnl ? (lastTrade.pnl > 0 ? `+$${lastTrade.pnl.toFixed(2)}` : `-$${Math.abs(lastTrade.pnl).toFixed(2)}`) : "";
       const messageText = `🤖 **Bot Trade** | ${symbol}/USDT ${side} at $${Number(lastTrade.price).toFixed(2)} | Amount: ${Number(lastTrade.amount).toFixed(4)} | PnL: ${pnl}`;
-      setChatMessages(prev => [{ id: lastTrade.id, text: messageText, timestamp: new Date(lastTrade.created_at), type: "bot" }, ...prev].slice(0, 150));
+      setChatMessages(prev => [{ id: lastTrade.id, text: messageText, timestamp: new Date(lastTrade.created_at), type: "bot" as const }, ...prev].slice(0, 150));
     }
   }, [publicTrades, getSymbol, botChatEnabled, chatMessages]);
 
@@ -243,7 +243,7 @@ const BotsPage = () => {
         } else if (demoMode) setDemoBalance(demoBalance + pnl);
         emitTradeAlert({ id: `${bot.id}-${Date.now()}`, side: side as "buy" | "sell", symbol: symbol || "BTC", price: tradePrice, amount, timestamp: Date.now() });
         if (botChatEnabled && Math.random() < 0.3) {
-          setChatMessages(prev => [{ id: `bot-${Date.now()}`, text: `🤖 ${bot.name} executed ${side === "buy" ? "LONG" : "SHORT"} on ${symbol}/USDT. Profit: $${pnl.toFixed(2)} 🚀`, timestamp: new Date(), type: "bot" }, ...prev].slice(0, 150));
+          setChatMessages(prev => [{ id: `bot-${Date.now()}`, text: `🤖 ${bot.name} executed ${side === "buy" ? "LONG" : "SHORT"} on ${symbol}/USDT. Profit: $${pnl.toFixed(2)} 🚀`, timestamp: new Date(), type: "bot" as const }, ...prev].slice(0, 150));
         }
       });
     }, 3000);

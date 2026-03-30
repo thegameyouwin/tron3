@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Star, Crown, Gem, Check, X, Wallet, Copy, Loader2, AlertTriangle, ArrowLeft, DollarSign } from "lucide-react";
+import { Star, Crown, Gem, Check, X, Wallet, Copy, Loader2, AlertTriangle, ArrowLeft, DollarSign, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSiteSettingsDB } from "@/hooks/useSiteSettingsDB";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
