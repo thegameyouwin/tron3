@@ -66,13 +66,17 @@ const FuturesPage = () => {
   const [searchParams] = useSearchParams();
   const [selectedCoin, setSelectedCoin] = useState(searchParams.get("coin") || "bitcoin");
   const [side, setSide] = useState<"long" | "short">("long");
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
-  const [amount, setAmount] = useState("");           // in USDT
+  const [orderType, setOrderType] = useState<"market" | "limit" | "stop_limit">("market");
+  const [amount, setAmount] = useState("");
   const [leverage, setLeverage] = useState(10);
   const [limitPrice, setLimitPrice] = useState("");
+  const [stopPrice, setStopPrice] = useState("");
+  const [takeProfit, setTakeProfit] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
   const [pairDropdownOpen, setPairDropdownOpen] = useState(false);
   const [pairSearch, setPairSearch] = useState("");
   const [positions, setPositions] = useState<Position[]>([]);
+  const [orderBookTick, setOrderBookTick] = useState(0);
   const [amountUnit, setAmountUnit] = useState<"base" | "quote">(() => {
     const saved = localStorage.getItem("futuresOrderBookAmountUnit");
     return saved === "quote" ? "quote" : "base";
@@ -130,11 +134,17 @@ const FuturesPage = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Deterministic order book for the selected pair
+  // Live order book - refreshes every 1.5s
   const coinSeed = selectedCoin.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setOrderBookTick(t => t + 1), 1500);
+    return () => clearInterval(interval);
+  }, []);
+
   const orderBook = useMemo(
-    () => generateDeterministicBook(currentPrice, coinSeed),
-    [currentPrice, coinSeed]
+    () => generateDeterministicBook(currentPrice, coinSeed + orderBookTick),
+    [currentPrice, coinSeed, orderBookTick]
   );
   const maxAskAmount = Math.max(...orderBook.asks.map(a => a.amount), 1);
   const maxBidAmount = Math.max(...orderBook.bids.map(b => b.amount), 1);
