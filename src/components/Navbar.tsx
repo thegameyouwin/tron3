@@ -129,7 +129,7 @@ const Navbar = () => {
           </div>
 
           {/* Drawer navigation links */}
-          <div className="flex-1 py-6 px-4 space-y-4">
+          <div className="flex-1 overflow-y-auto py-6 px-4 space-y-4">
             {navItems.map((item) => (
               <a
                 key={item.path}
@@ -142,8 +142,8 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Drawer action buttons */}
-          <div className="p-4 border-t border-border space-y-3">
+          {/* Drawer action buttons - pinned to bottom */}
+          <div className="p-4 border-t border-border space-y-3 shrink-0">
             <Link to="/auth" onClick={closeMenu}>
               <Button variant="outline" size="sm" className="w-full">
                 {t("nav.signIn")}
