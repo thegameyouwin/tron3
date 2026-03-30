@@ -233,6 +233,7 @@ const RolesManagementTab = ({ inputClass }: { inputClass: string }) => {
   );
 };
 
+const AdminPage = () => {
   const { settings, updateSetting, isLoading: settingsLoading } = useSiteSettingsDB();
   const { getSymbol } = useCryptoPrices();
   const [tab, setTab] = useState<Tab>("overview");
