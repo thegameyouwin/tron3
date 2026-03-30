@@ -67,6 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { prices } = useCryptoPrices();
   const { profile } = useProfile();
   const [collapsed, setCollapsed] = useState(true);
+  const [mobileCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const accountTier = (profile as any)?.account_tier || "free";
@@ -82,21 +83,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     navigate("/");
   };
 
-  const sidebarContent = (
+  const sidebarContent = (isMobileSidebar = false) => {
+    const isCollapsed = isMobileSidebar ? mobileCollapsed : collapsed;
+    return (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-14 border-b border-sidebar-border shrink-0">
         <Link to="/dashboard" className="flex items-center gap-2">
           <TronnlixLogo size={28} />
-          {!collapsed && <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Tronnlix</span>}
+          {!isCollapsed && <span className="text-lg font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Tronnlix</span>}
         </Link>
-        <button onClick={() => setCollapsed(!collapsed)} className="ml-auto hidden md:block text-sidebar-foreground/60 hover:text-sidebar-foreground">
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {!isMobileSidebar && (
+          <button onClick={() => setCollapsed(!collapsed)} className="ml-auto hidden md:block text-sidebar-foreground/60 hover:text-sidebar-foreground">
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       {/* Profile & Balance card */}
-      {!collapsed && (
+      {!isCollapsed && (
         <div className="mx-3 mt-3 space-y-2">
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-secondary/50 border border-border">
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -114,6 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
               <div className="flex items-center gap-1.5 mt-1">
                 <AccountTierBadge tier={accountTier} compact />
+                {kycVerified && <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5"><BadgeCheck className="h-2.5 w-2.5" /> Verified</span>}
                 {accountTier === "free" && (
                   <button onClick={() => setShowUpgrade(true)} className="text-[9px] text-primary hover:underline flex items-center gap-0.5">
                     <ArrowUp className="h-2.5 w-2.5" /> Upgrade
@@ -133,7 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
         {sections.map((section) => (
           <div key={section.title}>
-            {!collapsed && <p className="px-2 mb-1 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{section.title}</p>}
+            {!isCollapsed && <p className="px-2 mb-1 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{section.title}</p>}
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = location.pathname === item.path;
@@ -146,11 +152,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       active
                         ? "bg-primary/15 text-primary font-medium"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    } ${collapsed ? "justify-center" : ""}`}
-                    title={collapsed ? item.label : undefined}
+                    } ${isCollapsed ? "justify-center" : ""}`}
+                    title={isCollapsed ? item.label : undefined}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!isCollapsed && <span>{item.label}</span>}
                   </Link>
                 );
               })}
@@ -160,14 +166,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {isAdmin && (
           <div>
-            {!collapsed && <p className="px-2 mb-1 text-[10px] uppercase tracking-wider font-semibold text-destructive">Admin</p>}
+            {!isCollapsed && <p className="px-2 mb-1 text-[10px] uppercase tracking-wider font-semibold text-destructive">Admin</p>}
             <Link
               to="/admin"
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all ${collapsed ? "justify-center" : ""}`}
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all ${isCollapsed ? "justify-center" : ""}`}
             >
               <Shield className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>Admin Panel</span>}
+              {!isCollapsed && <span>Admin Panel</span>}
             </Link>
           </div>
         )}
@@ -175,24 +181,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2 space-y-1 shrink-0">
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-1 px-1"}`}>
+        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-1 px-1"}`}>
           <button onClick={toggleDarkMode} className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/60">
             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          {!collapsed && <LanguageSelector compact />}
+          {!isCollapsed && <LanguageSelector compact />}
           <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/60" title="Logout">
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop sidebar */}
       <aside className={`hidden md:flex flex-col border-r border-sidebar-border bg-sidebar shrink-0 transition-all duration-300 ${collapsed ? "w-16" : "w-60"}`}>
-        {sidebarContent}
+        {sidebarContent(false)}
       </aside>
 
       {/* Mobile overlay */}
@@ -200,7 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border z-10">
-            {sidebarContent}
+            {sidebarContent(true)}
           </aside>
         </div>
       )}
