@@ -216,7 +216,7 @@ const BotsPage = () => {
     }
   }, [publicTrades, getSymbol, botChatEnabled, chatMessages]);
 
-  // Welcome chat message
+  // Welcome chat message (fix: ensures welcome appears when chat opens)
   useEffect(() => {
     if (chatOpen && chatMessages.length === 0) {
       setChatMessages([{ id: "welcome", text: "👋 Welcome to Bot Chat! Try /help", timestamp: new Date(), type: "system" }]);
@@ -439,7 +439,8 @@ const BotsPage = () => {
     return (
       <div className="flex flex-col h-full">
         <div className="px-4 pt-4 pb-3 border-b"><button onClick={() => { setSelectedBot(null); setStakeAmount(""); }} className="flex gap-2 text-muted-foreground hover:text-foreground mb-2"><ArrowLeft className="h-4 w-4" />Back</button><div><p className="text-[11px] text-muted-foreground">{stratLabel}</p><h2 className="text-lg font-bold">{pair}</h2></div></div>
-        <div className="flex-1 overflow-y-auto">
+        {/* Added style={{ overflowAnchor: 'none' }} to prevent scroll jumping */}
+        <div className="flex-1 overflow-y-auto" style={{ overflowAnchor: 'none' }}>
           <div className="mx-4 mt-3 p-3 bg-profit/10 border border-profit/20 rounded-lg"><p className="text-[11px] text-profit flex gap-1.5"><Info className="h-3.5 w-3.5 shrink-0" />{premium && !demoMode ? "Premium bot requires a deposit to activate." : "Shared parameter bot."}</p></div>
           <div className="mx-4 mt-4"><h3 className="text-sm font-bold mb-2">Basic Info</h3><div className="bg-secondary/50 rounded-lg border divide-y">{[
             { label: "PNL", value: `+${bot.total_profit.toLocaleString()}`, color: "text-profit" },
