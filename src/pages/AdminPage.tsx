@@ -334,6 +334,7 @@ const AdminPage = () => {
         updateSetting.mutateAsync({ key: "withdraw_fee_percent", value: localFee }),
         updateSetting.mutateAsync({ key: "maintenance_mode", value: localMaintenance }),
         updateSetting.mutateAsync({ key: "referral_bonus_percent", value: localReferralBonus }),
+        ...(localResendKey ? [updateSetting.mutateAsync({ key: "resend_api_key", value: localResendKey })] : []),
       ]);
       toast.success("Settings saved!");
     } catch (err: any) {
