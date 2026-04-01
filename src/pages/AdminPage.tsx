@@ -265,6 +265,7 @@ const AdminPage = () => {
   const [localFee, setLocalFee] = useState(settings.withdraw_fee_percent);
   const [localMaintenance, setLocalMaintenance] = useState(settings.maintenance_mode || false);
   const [localReferralBonus, setLocalReferralBonus] = useState(settings.referral_bonus_percent || 10);
+  const [localResendKey, setLocalResendKey] = useState((settings as any).resend_api_key || "");
 
   // Bot creation state
   const [newBotName, setNewBotName] = useState("");
