@@ -7,7 +7,7 @@ import {
   CheckCircle2, XCircle, Clock, Bot, Plus, Trash2, Play, Square,
   DollarSign, Activity, BarChart3, Search, Filter, ChevronLeft,
   ChevronRight, RefreshCw, AlertTriangle, Edit2, TrendingUp, Zap,
-  UserPlus, ShieldCheck
+  UserPlus, ShieldCheck, Mail
 } from "lucide-react";
 import { useSiteSettingsDB } from "@/hooks/useSiteSettingsDB";
 import {
