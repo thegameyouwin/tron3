@@ -971,7 +971,34 @@ const AdminPage = () => {
                   className={inputClass}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Used for withdrawal OTP verification emails. Get your key from resend.com</p>
+            </div>
+
+            {/* M-PESA / Kopo Kopo */}
+            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><Smartphone className="h-4 w-4" /> M-PESA (Kopo Kopo)</h3>
+              <p className="text-[10px] text-muted-foreground">Configure Kopo Kopo credentials to accept M-PESA STK Push payments. Get credentials from <a href="https://app.kopokopo.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">kopokopo.com</a></p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Client ID</label>
+                  <input type="text" value={localKopoClientId} onChange={e => setLocalKopoClientId(e.target.value)} placeholder="Your Kopo Kopo Client ID" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Client Secret</label>
+                  <input type="password" value={localKopoClientSecret} onChange={e => setLocalKopoClientSecret(e.target.value)} placeholder="Your Kopo Kopo Client Secret" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Till Number</label>
+                  <input type="text" value={localKopoTill} onChange={e => setLocalKopoTill(e.target.value)} placeholder="e.g. K123456" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">API Environment</label>
+                  <select value={localKopoBaseUrl} onChange={e => setLocalKopoBaseUrl(e.target.value)} className={inputClass}>
+                    <option value="https://sandbox.kopokopo.com">Sandbox (Testing)</option>
+                    <option value="https://api.kopokopo.com">Production (Live)</option>
+                  </select>
+                </div>
               </div>
+            </div>
             </div>
 
             {/* Enabled Cryptos */}
