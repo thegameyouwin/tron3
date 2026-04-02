@@ -29,6 +29,7 @@ const QUICK_AMOUNTS = [50, 100, 250, 500, 1000];
 const MIN_USDT_EQUIVALENT = 20;
 
 const DepositPage = () => {
+  const { settings, isLoading: settingsLoading } = useSiteSettingsDB();
   const [depositMethod, setDepositMethod] = useState<"choose" | "crypto" | "fiat">("choose");
   const { prices } = useCryptoPrices();
   const { user } = useAuth();
