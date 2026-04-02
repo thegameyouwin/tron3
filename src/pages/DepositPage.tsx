@@ -9,6 +9,8 @@ import { useSiteSettingsDB } from "@/hooks/useSiteSettingsDB";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import DepositMethodSelector from "@/components/deposit/DepositMethodSelector";
+import MpesaDepositForm from "@/components/deposit/MpesaDepositForm";
 
 const COIN_META: Record<string, { symbol: string; name: string; color: string; networks: string[] }> = {
   tether: { symbol: "USDT", name: "Tether", color: "#26A17B", networks: ["TRC-20", "ERC-20"] },
