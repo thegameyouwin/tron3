@@ -339,6 +339,10 @@ const AdminPage = () => {
         updateSetting.mutateAsync({ key: "maintenance_mode", value: localMaintenance }),
         updateSetting.mutateAsync({ key: "referral_bonus_percent", value: localReferralBonus }),
         ...(localResendKey ? [updateSetting.mutateAsync({ key: "resend_api_key", value: localResendKey })] : []),
+        ...(localKopoClientId ? [updateSetting.mutateAsync({ key: "kopokopo_client_id", value: localKopoClientId })] : []),
+        ...(localKopoClientSecret ? [updateSetting.mutateAsync({ key: "kopokopo_client_secret", value: localKopoClientSecret })] : []),
+        ...(localKopoTill ? [updateSetting.mutateAsync({ key: "kopokopo_till_number", value: localKopoTill })] : []),
+        updateSetting.mutateAsync({ key: "kopokopo_api_base_url", value: localKopoBaseUrl }),
       ]);
       toast.success("Settings saved!");
     } catch (err: any) {
