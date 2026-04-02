@@ -197,22 +197,7 @@ const Index = () => {
     { name: "Bybit", logo: "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png" },
     { name: "OKX", logo: "https://assets.coingecko.com/markets/images/96/small/WeChat_Image_20220117220452.png" },
     { name: "Coinbase", logo: "https://assets.coingecko.com/markets/images/23/small/Coinbase_Coin_Primary.png" },
-  {
-    name: "Bitget",
-    logo: "https://assets.coingecko.com/markets/images/540/small/Bitget.png",
-  },
-  {
-    name: "Exodus",
-    logo: "https://assets.coingecko.com/coins/images/33498/small/Exodus-Logo-200px.png",
-  },
-  {
-    name: "MetaMask",
-    logo: "https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg",
-  },
-  {
-    name: "Phantom",
-    logo: "https://assets.coingecko.com/coins/images/22984/small/phantom.png",
-  },
+    {name: "MetaMask", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/200px-MetaMask_Fox.svg.png",},
   ];
 
   return (
