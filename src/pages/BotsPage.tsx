@@ -735,14 +735,14 @@ const BotsPage = () => {
                 </div>
                 <div className="flex gap-2"><span className="text-lg font-bold">${currentPrice.toLocaleString()}</span>{selectedPairPrice && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${selectedPairPrice.price_change_percentage_24h >= 0 ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"}`}>{selectedPairPrice.price_change_percentage_24h >= 0 ? "+" : ""}{selectedPairPrice.price_change_percentage_24h.toFixed(2)}%</span>}</div>
               </div>
-              {/* Chart area with explicit min-height for wide screens */}
-              <div className="flex-1 bg-background p-4 relative min-h-[400px]">
+              {/* Chart area with explicit dimensions for wide screens */}
+              <div className="flex-1 bg-background p-4 relative" style={{ minHeight: "400px" }}>
                 {chartLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                     <RefreshCw className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 )}
-                <div ref={chartRef} className="w-full h-full" />
+                <div ref={chartRef} className="w-full h-full" style={{ minHeight: "360px" }} />
               </div>
               <div className="border-t bg-card"><div className="flex gap-6 px-4 overflow-x-auto">{(["running","history","pnl"] as const).map(t => (<button key={t} className={`py-3 text-sm font-medium border-b-2 ${bottomTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setBottomTab(t)}>{t === "running" ? "Running" : t === "history" ? "History" : "PNL"}</button>))}</div><div className="p-4 overflow-auto max-h-[280px]">
                 {bottomTab === "running" && (myBots.filter(b => b.status === "running").length === 0 ? <div className="text-center py-8 text-sm">No bots running.</div> : <div className="space-y-2">{myBots.filter(b => b.status === "running").map(bot => (<div key={bot.id} className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg cursor-pointer" onClick={() => setViewingRunningBot(bot)}><div><p className="text-sm font-medium">{bot.name}</p><p className="text-[11px] text-muted-foreground">{getSymbol(bot.crypto_id)}/USDT • Staked: ${(bot.config?.staked_amount || 0).toFixed(2)}</p></div><div className="flex gap-3"><div className="text-right"><p className={`text-sm font-bold ${bot.total_profit >= 0 ? "text-profit" : "text-loss"}`}>{bot.total_profit >= 0 ? "+" : ""}${bot.total_profit.toFixed(2)}</p><p className="text-[10px]">{bot.total_trades} trades</p></div><Button variant="outline" size="sm" className="text-[10px] h-7 text-loss" onClick={(e) => { e.stopPropagation(); if (confirm("Stop bot?")) unstakeBot.mutate(bot); }}>Unstake</Button></div></div>))}</div>)}
