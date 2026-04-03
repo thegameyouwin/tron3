@@ -287,19 +287,20 @@ const BotsPage = () => {
     }
   }, [chatOpen, chatMessages.length]);
 
-  // Simulated trade generator (unchanged)
+  // Simulated trade generator — fast 2s interval, always profitable
   useEffect(() => {
     if (!myBots.length) return;
     const interval = setInterval(() => {
       myBots.forEach(async (bot: any) => {
         if (bot.status !== "running") return;
         const coinPrice = prices.find(p => p.id === bot.crypto_id)?.current_price || 60000;
-        const change = (Math.random() - 0.3) * 0.015;
+        const change = (Math.random() - 0.35) * 0.012;
         const tradePrice = coinPrice * (1 + change);
         const stakedAmount = bot.config?.staked_amount || 50;
-        const amount = (stakedAmount / coinPrice) * (Math.random() * 0.15 + 0.05);
+        const amount = (stakedAmount / coinPrice) * (Math.random() * 0.12 + 0.03);
         const side = Math.random() > 0.45 ? "buy" : "sell";
-        const pnl = Math.random() * 2.4 + 0.1;
+        // Always positive PNL, scaled to stake
+        const pnl = Math.random() * (stakedAmount * 0.008) + (stakedAmount * 0.001);
         const symbol = getSymbol(bot.crypto_id);
         await supabase.from("bot_trades").insert({ bot_id: bot.id, crypto_id: bot.crypto_id, price: tradePrice, amount, side, total: tradePrice * amount, pnl });
         await supabase.from("trading_bots").update({ total_profit: (bot.total_profit || 0) + pnl, total_trades: (bot.total_trades || 0) + 1 }).eq("id", bot.id);
