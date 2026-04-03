@@ -118,7 +118,9 @@ const BotsPage = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [chartLoading, setChartLoading] = useState(true);
-  const chartInitialized = useRef(false);
+  const [chartError, setChartError] = useState(false);
+  const loadRetryCount = useRef(0);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-stop state
   const [autoStopEnabled, setAutoStopEnabled] = useState(false);
@@ -460,19 +462,33 @@ const BotsPage = () => {
     const container = chartRef.current;
     if (!container || !getSymbol(selectedChartPair)) return;
 
-    // Clear previous widget
+    // Clear previous widget and reset states
     while (container.firstChild) container.removeChild(container.firstChild);
     setChartLoading(true);
-    chartInitialized.current = false;
+    setChartError(false);
+    loadRetryCount.current = 0;
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+
+    let isMounted = true;
+    let resizeObserver: ResizeObserver | null = null;
 
     const loadWidget = () => {
-      if (chartInitialized.current) return;
-      if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
-        // Wait for size
-        setTimeout(loadWidget, 200);
+      if (!isMounted) return;
+      // Container must have positive dimensions
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width === 0 || height === 0) {
+        if (loadRetryCount.current < 10) {
+          loadRetryCount.current++;
+          loadTimeoutRef.current = setTimeout(loadWidget, 150);
+        } else {
+          setChartLoading(false);
+          setChartError(true);
+        }
         return;
       }
 
+      // Create TradingView script
       const script = document.createElement("script");
       script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
       script.type = "text/javascript";
@@ -489,32 +505,41 @@ const BotsPage = () => {
         support_host: "https://www.tradingview.com"
       });
       script.onload = () => {
-        setChartLoading(false);
-        chartInitialized.current = true;
+        if (isMounted) {
+          setChartLoading(false);
+          setChartError(false);
+        }
       };
       script.onerror = () => {
-        setChartLoading(false);
-        toast.error("Chart failed to load. Please refresh.");
+        if (isMounted) {
+          setChartLoading(false);
+          setChartError(true);
+        }
       };
       container.appendChild(script);
     };
 
-    // Use ResizeObserver to detect when container becomes visible
-    const observer = new ResizeObserver(() => {
+    // Use ResizeObserver to detect when container gets dimensions
+    resizeObserver = new ResizeObserver(() => {
       if (container.clientWidth > 0 && container.clientHeight > 0) {
-        observer.disconnect();
+        resizeObserver?.disconnect();
         loadWidget();
       }
     });
-    observer.observe(container);
-    // Fallback timeout
-    const timeout = setTimeout(() => {
-      observer.disconnect();
-      if (!chartInitialized.current) loadWidget();
+    resizeObserver.observe(container);
+
+    // Fallback: if observer never fires, try loading after 1 second
+    loadTimeoutRef.current = setTimeout(() => {
+      if (isMounted && (container.clientWidth === 0 || container.clientHeight === 0)) {
+        resizeObserver?.disconnect();
+        loadWidget();
+      }
     }, 1000);
+
     return () => {
-      observer.disconnect();
-      clearTimeout(timeout);
+      isMounted = false;
+      if (resizeObserver) resizeObserver.disconnect();
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
       if (container) container.innerHTML = "";
     };
   }, [selectedChartPair, getSymbol]);
@@ -596,7 +621,6 @@ const BotsPage = () => {
 
     // Prevent scroll jumping on input focus
     const handleInputFocus = () => {
-      // Use modern preventScroll if available, else fallback to setTimeout
       if (inputRef.current) {
         inputRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
@@ -742,11 +766,26 @@ const BotsPage = () => {
                     <RefreshCw className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 )}
-                <div ref={chartRef} className="w-full h-full" style={{ minHeight: "360px" }} />
+                {chartError && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 z-10 gap-2">
+                    <p className="text-sm text-muted-foreground">Chart failed to load</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        // Force reload by briefly changing pair then back
+                        setSelectedChartPair(prev => prev === "bitcoin" ? "ethereum" : "bitcoin");
+                      }}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+                <div ref={chartRef} className="w-full h-[400px]" />
               </div>
               <div className="border-t bg-card"><div className="flex gap-6 px-4 overflow-x-auto">{(["running","history","pnl"] as const).map(t => (<button key={t} className={`py-3 text-sm font-medium border-b-2 ${bottomTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setBottomTab(t)}>{t === "running" ? "Running" : t === "history" ? "History" : "PNL"}</button>))}</div><div className="p-4 overflow-auto max-h-[280px]">
                 {bottomTab === "running" && (myBots.filter(b => b.status === "running").length === 0 ? <div className="text-center py-8 text-sm">No bots running.</div> : <div className="space-y-2">{myBots.filter(b => b.status === "running").map(bot => (<div key={bot.id} className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg cursor-pointer" onClick={() => setViewingRunningBot(bot)}><div><p className="text-sm font-medium">{bot.name}</p><p className="text-[11px] text-muted-foreground">{getSymbol(bot.crypto_id)}/USDT • Staked: ${(bot.config?.staked_amount || 0).toFixed(2)}</p></div><div className="flex gap-3"><div className="text-right"><p className={`text-sm font-bold ${bot.total_profit >= 0 ? "text-profit" : "text-loss"}`}>{bot.total_profit >= 0 ? "+" : ""}${bot.total_profit.toFixed(2)}</p><p className="text-[10px]">{bot.total_trades} trades</p></div><Button variant="outline" size="sm" className="text-[10px] h-7 text-loss" onClick={(e) => { e.stopPropagation(); if (confirm("Stop bot?")) unstakeBot.mutate(bot); }}>Unstake</Button></div></div>))}</div>)}
-                {bottomTab === "history" && (userTrades.length === 0 ? <p className="text-center text-sm">No trade history.</p> : <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="text-muted-foreground"><th className="text-left py-2">Pair</th><th>Side</th><th className="text-right">Price</th><th className="text-right">Amount</th><th className="text-right">PNL</th><th className="text-right">Time</th></tr></thead><tbody>{userTrades.slice(0,20).map(t => (<tr key={t.id}><td>{getSymbol(t.crypto_id)}/USDT</td><td className={t.side==="buy"?"text-profit":"text-loss"}>{t.side}</td><td className="text-right">${Number(t.price).toLocaleString()}</td><td className="text-right">{Number(t.amount).toFixed(4)}</td><td className={`text-right ${(t.pnl||0)>=0?"text-profit":"text-loss"}`}>${(t.pnl||0).toFixed(2)}</td><td className="text-right text-muted-foreground">{new Date(t.created_at).toLocaleTimeString()}</td></tr>))}</tbody></table></div>)}
+                {bottomTab === "history" && (userTrades.length === 0 ? <p className="text-center text-sm">No trade history.</p> : <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="text-muted-foreground"><th className="text-left py-2">Pair</th><th>Side</th><th className="text-right">Price</th><th className="text-right">Amount</th><th className="text-right">PNL</th><th className="text-right">Time</th><tr></thead><tbody>{userTrades.slice(0,20).map(t => (<tr key={t.id}><td>{getSymbol(t.crypto_id)}/USDT</td><td className={t.side==="buy"?"text-profit":"text-loss"}>{t.side}</td><td className="text-right">${Number(t.price).toLocaleString()}</td><td className="text-right">{Number(t.amount).toFixed(4)}</td><td className={`text-right ${(t.pnl||0)>=0?"text-profit":"text-loss"}`}>${(t.pnl||0).toFixed(2)}</td><td className="text-right text-muted-foreground">{new Date(t.created_at).toLocaleTimeString()}</td></tr>))}</tbody></table></div>)}
                 {bottomTab === "pnl" && (pnlChartData.length === 0 ? <div className="text-center py-8"><BarChart3 className="h-8 w-8 mx-auto opacity-30" /><p>No PNL data yet.</p></div> : <div className="h-64"><ResponsiveContainer><LineChart data={pnlChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip /><Line type="monotone" dataKey="profit" stroke="#22c55e" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div>)}
               </div></div>
             </div>
@@ -780,6 +819,12 @@ const BotsPage = () => {
               {chartLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                   <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              )}
+              {chartError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 z-10 gap-1">
+                  <p className="text-xs text-muted-foreground">Chart error</p>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedChartPair(prev => prev === "bitcoin" ? "ethereum" : "bitcoin")}>Retry</Button>
                 </div>
               )}
               <div ref={chartRef} className="w-full h-full" />
