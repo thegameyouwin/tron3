@@ -217,7 +217,7 @@ const BotsPage = () => {
 
   const usdtBalance = Number(usdtWallet?.balance || 0);
 
-  // Auto-stop monitoring effect (checks every 30 seconds)
+  // Auto-stop monitoring effect (checks every 5 seconds for fast response)
   useEffect(() => {
     if (!myBots.length) return;
     const interval = setInterval(() => {
@@ -252,7 +252,7 @@ const BotsPage = () => {
           unstakeBot.mutate(bot);
         }
       });
-    }, 30000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [myBots]);
 
