@@ -117,10 +117,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {kycVerified && <BadgeCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
               </div>
               <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
-              <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 <AccountTierBadge tier={accountTier} compact />
-                {kycVerified && <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5"><BadgeCheck className="h-2.5 w-2.5" /> Verified</span>}
-                {accountTier === "free" && (
+                {accountTier !== "vip" && (
                   <button onClick={() => setShowUpgrade(true)} className="text-[9px] text-primary hover:underline flex items-center gap-0.5">
                     <ArrowUp className="h-2.5 w-2.5" /> Upgrade
                   </button>
@@ -128,6 +127,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           </div>
+
+          {/* KYC / Verification Status Banner */}
+          <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+            kycVerified
+              ? "bg-emerald-500/10 border-emerald-500/20"
+              : profile?.kyc_status === "pending"
+              ? "bg-amber-500/10 border-amber-500/20"
+              : "bg-muted/50 border-border"
+          }`}>
+            {kycVerified ? (
+              <>
+                <BadgeCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-emerald-400">Identity Verified</p>
+                  <p className="text-[9px] text-muted-foreground">Full access enabled</p>
+                </div>
+              </>
+            ) : profile?.kyc_status === "pending" ? (
+              <>
+                <Clock className="h-4 w-4 text-amber-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-amber-400">Verification Pending</p>
+                  <p className="text-[9px] text-muted-foreground">Under review</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-foreground">Not Verified</p>
+                  <p className="text-[9px] text-muted-foreground">Verify identity for full access</p>
+                </div>
+                <Link to="/kyc" onClick={() => setMobileOpen(false)} className="text-[9px] text-primary font-semibold hover:underline shrink-0">Verify →</Link>
+              </>
+            )}
+          </div>
+
           <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Portfolio</p>
             <p className="text-lg font-bold text-foreground">${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
