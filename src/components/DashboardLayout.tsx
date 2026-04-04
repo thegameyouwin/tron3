@@ -15,7 +15,7 @@ import {
   LayoutDashboard, Wallet, Banknote, Users, TrendingUp, CandlestickChart,
   Bot, Coins, Gift, ArrowRightLeft, ArrowDownToLine, History, CreditCard,
   ShieldCheck, Lock, HelpCircle, LogOut, Sun, Moon, Shield, ChevronLeft,
-  ChevronRight, Menu, X, User, BadgeCheck, ArrowUp
+  ChevronRight, Menu, X, User, BadgeCheck, ArrowUp, Clock
 } from "lucide-react";
 
 const sections = [
