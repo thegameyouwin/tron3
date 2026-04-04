@@ -7,9 +7,11 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSiteSettingsDB } from "@/hooks/useSiteSettingsDB";
 import { useProfile } from "@/hooks/useProfile";
+import WithdrawMethodSelector from "@/components/withdraw/WithdrawMethodSelector";
 import WithdrawForm from "@/components/withdraw/WithdrawForm";
 import WithdrawReview from "@/components/withdraw/WithdrawReview";
 import WithdrawProgress from "@/components/withdraw/WithdrawProgress";
+import MpesaWithdrawForm from "@/components/withdraw/MpesaWithdrawForm";
 
 const WITHDRAW_COINS = [
   { id: "tether", symbol: "USDT", networks: ["TRC-20", "ERC-20", "BEP-20"] },
@@ -21,10 +23,10 @@ const WITHDRAW_COINS = [
   { id: "cardano", symbol: "ADA", networks: ["ADA"] },
 ];
 
-type Step = "form" | "review" | "progress";
+type Step = "method" | "form" | "review" | "progress" | "mpesa";
 
 const WithdrawPage = () => {
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("method");
   const [selectedCrypto, setSelectedCrypto] = useState("tether");
   const [reviewData, setReviewData] = useState<any>(null);
   const [txId, setTxId] = useState<string | null>(null);
@@ -47,8 +49,12 @@ const WithdrawPage = () => {
     }, 0);
   }, [wallets, prices]);
 
-  const coinMeta = WITHDRAW_COINS.find(c => c.id === selectedCrypto);
   const coinPrice = prices.find(p => p.id === selectedCrypto);
+
+  const handleMethodSelect = (method: "crypto" | "mpesa") => {
+    if (method === "mpesa") setStep("mpesa");
+    else setStep("form");
+  };
 
   const handleReview = (formData: { walletAddress: string; network: string; amountUSD: number }) => {
     const usd = formData.amountUSD;
@@ -79,34 +85,33 @@ const WithdrawPage = () => {
   };
 
   const handleDone = () => {
-    setStep("form");
+    setStep("method");
     setReviewData(null);
     setTxId(null);
     fetchTransactions();
   };
 
-  // Recent withdrawals
   const recentWithdrawals = transactions.filter(t => t.type === "withdrawal").slice(0, 10);
 
   return (
     <DashboardLayout>
       <div className="max-w-lg mx-auto p-4 md:p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-2">
           <ArrowUpRight className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-display font-bold text-foreground">
-            Withdraw {step === "form" ? getSymbol(selectedCrypto) : reviewData?.symbol}
-            {reviewData?.network ? ` (${reviewData.network})` : ""}
+            {step === "mpesa" ? "M-PESA Withdrawal" :
+             step === "form" ? `Withdraw ${getSymbol(selectedCrypto)}` :
+             step === "review" || step === "progress" ? `Withdraw ${reviewData?.symbol || ""}` :
+             "Withdraw"}
           </h1>
         </div>
-        {step === "form" && (
+        {step === "method" && (
           <p className="text-sm text-muted-foreground -mt-4">
-            Withdraw directly to any supported wallet address
+            Choose how you'd like to withdraw your funds
           </p>
         )}
 
-        {/* Balance */}
-        {step === "form" && (
+        {(step === "method" || step === "form") && (
           <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-border rounded-2xl p-4 text-center">
             <p className="text-2xl font-display font-bold text-foreground">
               {sym}{totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -115,18 +120,30 @@ const WithdrawPage = () => {
           </div>
         )}
 
-        {/* Steps */}
+        {step === "method" && (
+          <WithdrawMethodSelector onSelect={handleMethodSelect} />
+        )}
+
+        {step === "mpesa" && (
+          <MpesaWithdrawForm onBack={() => setStep("method")} />
+        )}
+
         {step === "form" && (
-          <WithdrawForm
-            coins={WITHDRAW_COINS}
-            selectedCrypto={selectedCrypto}
-            onSelectCrypto={setSelectedCrypto}
-            prices={prices}
-            getBalance={getBalance}
-            getSymbol={getSymbol}
-            kycVerified={kycVerified}
-            onReview={handleReview}
-          />
+          <>
+            <button onClick={() => setStep("method")} className="text-xs text-primary hover:underline">
+              ← Change method
+            </button>
+            <WithdrawForm
+              coins={WITHDRAW_COINS}
+              selectedCrypto={selectedCrypto}
+              onSelectCrypto={setSelectedCrypto}
+              prices={prices}
+              getBalance={getBalance}
+              getSymbol={getSymbol}
+              kycVerified={kycVerified}
+              onReview={handleReview}
+            />
+          </>
         )}
 
         {step === "review" && reviewData && (
@@ -153,7 +170,6 @@ const WithdrawPage = () => {
           />
         )}
 
-        {/* Recent Withdrawals */}
         <div className="space-y-3 pt-2">
           <h2 className="text-base font-display font-bold text-foreground">Recent Withdrawals</h2>
           {recentWithdrawals.length === 0 ? (
@@ -178,7 +194,7 @@ const WithdrawPage = () => {
                           {t.amount.toFixed(6)} {getSymbol(t.crypto_id)}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          {new Date(t.created_at).toLocaleDateString()} • {t.wallet_address?.slice(0, 12)}...
+                          {new Date(t.created_at).toLocaleDateString()} • {t.network === "M-PESA" ? "M-PESA" : t.wallet_address?.slice(0, 12) + "..."}
                         </p>
                       </div>
                     </div>
