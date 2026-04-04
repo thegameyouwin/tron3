@@ -457,89 +457,78 @@ const BotsPage = () => {
     return sortedDates.map(date => { cumulative += dailyProfit[date]; return { date, profit: cumulative }; });
   }, [userTrades]);
 
-  // Robust TradingView chart loader (fixes wide screen issue)
+  // Robust TradingView advanced chart widget
   useEffect(() => {
     const container = chartRef.current;
-    if (!container || !getSymbol(selectedChartPair)) return;
+    if (!container) return;
+    const symbol = getSymbol(selectedChartPair);
+    if (!symbol) return;
 
-    // Clear previous widget and reset states
-    while (container.firstChild) container.removeChild(container.firstChild);
+    // Clear previous
+    container.innerHTML = "";
     setChartLoading(true);
     setChartError(false);
-    loadRetryCount.current = 0;
-    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
 
     let isMounted = true;
-    let resizeObserver: ResizeObserver | null = null;
 
     const loadWidget = () => {
-      if (!isMounted) return;
-      // Container must have positive dimensions
+      if (!isMounted || !container) return;
       const width = container.clientWidth;
-      const height = container.clientHeight;
-      if (width === 0 || height === 0) {
-        if (loadRetryCount.current < 10) {
-          loadRetryCount.current++;
-          loadTimeoutRef.current = setTimeout(loadWidget, 150);
-        } else {
-          setChartLoading(false);
-          setChartError(true);
-        }
+      const height = container.clientHeight || 450;
+      if (width < 50) {
+        setTimeout(loadWidget, 200);
         return;
       }
 
-      // Create TradingView script
+      // Create the widget container div that TradingView expects
+      const widgetDiv = document.createElement("div");
+      widgetDiv.className = "tradingview-widget-container__widget";
+      widgetDiv.style.width = "100%";
+      widgetDiv.style.height = "100%";
+      container.appendChild(widgetDiv);
+
       const script = document.createElement("script");
       script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
       script.type = "text/javascript";
       script.async = true;
       script.innerHTML = JSON.stringify({
         autosize: true,
-        symbol: `BINANCE:${getSymbol(selectedChartPair)}USDT`,
+        symbol: `BINANCE:${symbol.toUpperCase()}USDT`,
         interval: "15",
         timezone: "Etc/UTC",
         theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
         style: "1",
         locale: "en",
-        allow_symbol_change: false,
-        support_host: "https://www.tradingview.com"
+        withdateranges: true,
+        hide_side_toolbar: false,
+        allow_symbol_change: true,
+        details: true,
+        hotlist: false,
+        calendar: false,
+        studies: ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+        support_host: "https://www.tradingview.com",
       });
+
       script.onload = () => {
-        if (isMounted) {
-          setChartLoading(false);
-          setChartError(false);
-        }
+        if (isMounted) { setChartLoading(false); setChartError(false); }
       };
       script.onerror = () => {
-        if (isMounted) {
-          setChartLoading(false);
-          setChartError(true);
-        }
+        if (isMounted) { setChartLoading(false); setChartError(true); }
       };
+
+      // TradingView expects the script inside the container
       container.appendChild(script);
+
+      // Fallback: mark loaded after 5s if onload never fires (iframe-based)
+      setTimeout(() => { if (isMounted) setChartLoading(false); }, 5000);
     };
 
-    // Use ResizeObserver to detect when container gets dimensions
-    resizeObserver = new ResizeObserver(() => {
-      if (container.clientWidth > 0 && container.clientHeight > 0) {
-        resizeObserver?.disconnect();
-        loadWidget();
-      }
-    });
-    resizeObserver.observe(container);
-
-    // Fallback: if observer never fires, try loading after 1 second
-    loadTimeoutRef.current = setTimeout(() => {
-      if (isMounted && (container.clientWidth === 0 || container.clientHeight === 0)) {
-        resizeObserver?.disconnect();
-        loadWidget();
-      }
-    }, 1000);
+    // Small delay to ensure container is rendered with dimensions
+    const timer = setTimeout(loadWidget, 100);
 
     return () => {
       isMounted = false;
-      if (resizeObserver) resizeObserver.disconnect();
-      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      clearTimeout(timer);
       if (container) container.innerHTML = "";
     };
   }, [selectedChartPair, getSymbol]);
