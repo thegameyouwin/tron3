@@ -54,7 +54,8 @@ const BotsPage = () => {
   const [strategyFilter, setStrategyFilter] = useState("All");
   const [bottomTab, setBottomTab] = useState<"running" | "history" | "pnl" | "bots">("running");
   const [selectedBot, setSelectedBot] = useState<any>(null);
-  const [viewingRunningBot, setViewingRunningBot] = useState<any>(null);
+  // FIX: store only bot ID, not the whole object
+  const [viewingRunningBotId, setViewingRunningBotId] = useState<string | null>(null);
   const [stakeAmount, setStakeAmount] = useState("");
   const [selectedChartPair, setSelectedChartPair] = useState("bitcoin");
   const [stopSummary, setStopSummary] = useState<any>(null);
@@ -102,7 +103,7 @@ const BotsPage = () => {
       return (data || []).map((b: any) => ({ ...b, total_profit: Number(b.total_profit) }));
     },
     enabled: !!user,
-    refetchInterval: 5000,
+    refetchInterval: 5000, // auto-refreshes every 5 seconds
   });
 
   const { data: userTrades = [] } = useQuery({
@@ -153,13 +154,13 @@ const BotsPage = () => {
     return () => clearInterval(interval);
   }, [myBots]);
 
-  // Auto-navigate to new bot
+  // Auto-navigate to new bot – store only ID
   useEffect(() => {
     if (!myBots.length) return;
     const now = Date.now();
-    const newBot = myBots.find((b) => b.status === "running" && now - new Date(b.created_at).getTime() < 2000 && !viewingRunningBot);
-    if (newBot) { setViewingRunningBot(newBot); toast.success(`${newBot.name} started!`); }
-  }, [myBots, viewingRunningBot]);
+    const newBot = myBots.find((b) => b.status === "running" && now - new Date(b.created_at).getTime() < 2000 && b.id !== viewingRunningBotId);
+    if (newBot) { setViewingRunningBotId(newBot.id); toast.success(`${newBot.name} started!`); }
+  }, [myBots, viewingRunningBotId]);
 
   // Chat: bot trade messages
   useEffect(() => {
@@ -252,7 +253,7 @@ const BotsPage = () => {
       setProfitTarget("");
       setLossLimit("");
       setTimeLimitMinutes("");
-      if (newBot) setViewingRunningBot(newBot);
+      if (newBot) setViewingRunningBotId(newBot.id);
     },
     onError: (err: any) => {
       if (err.message.includes("Insufficient")) { toast.error(err.message); setTimeout(() => navigate("/deposit"), 1500); }
@@ -302,7 +303,7 @@ const BotsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my_bots"] });
       queryClient.invalidateQueries({ queryKey: ["usdt_wallet"] });
-      setViewingRunningBot(null);
+      setViewingRunningBotId(null);
       toast.success("Bot stopped & funds returned!");
     },
     onError: (err: any) => toast.error(err.message),
@@ -350,6 +351,9 @@ const BotsPage = () => {
   const effectiveBalance = demoMode ? demoBalance : usdtBalance;
   const depositAddress = settings.depositWallets?.["bitcoin"] || settings.depositWallets?.["ethereum"] || "";
 
+  // Get the LIVE bot object from myBots (auto-refreshed)
+  const viewingRunningBot = myBots.find(b => b.id === viewingRunningBotId);
+
   // ─── Handlers ───
   const handleSelectBot = useCallback((bot: any) => {
     const botTier = (bot.tier || "free").toLowerCase();
@@ -388,7 +392,7 @@ const BotsPage = () => {
       return (
         <div className="space-y-2">
           {running.map((bot) => (
-            <div key={bot.id} className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg cursor-pointer hover:bg-secondary/70 transition-colors" onClick={() => setViewingRunningBot(bot)}>
+            <div key={bot.id} className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg cursor-pointer hover:bg-secondary/70 transition-colors" onClick={() => setViewingRunningBotId(bot.id)}>
               <div>
                 <p className="text-sm font-medium">{bot.name}</p>
                 <p className="text-[11px] text-muted-foreground">{getSymbol(bot.crypto_id)}/USDT • Staked: ${(bot.config?.staked_amount || 0).toFixed(2)}</p>
@@ -512,7 +516,12 @@ const BotsPage = () => {
             {/* Right sidebar */}
             <div className="w-[320px] lg:w-[360px] border-l bg-card flex flex-col overflow-hidden">
               {viewingRunningBot ? (
-                <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} onUnstake={(bot) => unstakeBot.mutate(bot)} unstaking={unstakeBot.isPending} />
+                <BotAnalyticsView
+                  bot={viewingRunningBot}
+                  onBack={() => setViewingRunningBotId(null)}
+                  onUnstake={(bot) => unstakeBot.mutate(bot)}
+                  unstaking={unstakeBot.isPending}
+                />
               ) : selectedBot ? (
                 <BotDetailPanel
                   bot={selectedBot}
@@ -560,7 +569,7 @@ const BotsPage = () => {
                 chartPairName={chartPairName}
               />
             </div>
-            {/* MOBILE CHART — NOW USING TRADINGVIEW (same as desktop) */}
+            {/* MOBILE CHART — TradingView */}
             <div className="h-64 bg-background">
               <TradingViewChart symbol={getSymbol(selectedChartPair) || "BTC"} />
             </div>
@@ -581,14 +590,19 @@ const BotsPage = () => {
             {(viewingRunningBot || selectedBot) && (
               <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden">
                 <div className="p-3 border-b flex items-center gap-2 shrink-0 safe-top">
-                  <button onClick={() => { setViewingRunningBot(null); setSelectedBot(null); }} className="p-2 rounded-lg hover:bg-secondary">
+                  <button onClick={() => { setViewingRunningBotId(null); setSelectedBot(null); }} className="p-2 rounded-lg hover:bg-secondary">
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   <span className="font-semibold text-sm truncate">{viewingRunningBot?.name || selectedBot?.name}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto overscroll-contain">
                   {viewingRunningBot ? (
-                    <BotAnalyticsView bot={viewingRunningBot} onBack={() => setViewingRunningBot(null)} onUnstake={(bot) => unstakeBot.mutate(bot)} unstaking={unstakeBot.isPending} />
+                    <BotAnalyticsView
+                      bot={viewingRunningBot}
+                      onBack={() => setViewingRunningBotId(null)}
+                      onUnstake={(bot) => unstakeBot.mutate(bot)}
+                      unstaking={unstakeBot.isPending}
+                    />
                   ) : (
                     <BotDetailPanel
                       bot={selectedBot}
