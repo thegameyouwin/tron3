@@ -2,13 +2,16 @@ import { useEffect, useRef } from "react";
 
 interface TradingViewChartProps {
   symbol: string;
+  /** Optional custom height (e.g., "300px", "100%") */
+  height?: string;
 }
 
 /**
  * Simple, reliable TradingView embed — same method as FuturesPage.
  * No ResizeObserver, no retry loops.
+ * Supports dark/light theme and responsive height.
  */
-export default function TradingViewChart({ symbol }: TradingViewChartProps) {
+export default function TradingViewChart({ symbol, height = "min-h-[450px] md:min-h-[450px]" }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,12 +26,17 @@ export default function TradingViewChart({ symbol }: TradingViewChartProps) {
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
+
+    // Detect current theme (dark/light)
+    const isDark = document.documentElement.classList.contains("dark");
+    const theme = isDark ? "dark" : "light";
+
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: `BINANCE:${symbol}USDT`,
       interval: "15",
       timezone: "Etc/UTC",
-      theme: "dark",
+      theme: theme,
       style: "1",
       locale: "en",
       allow_symbol_change: false,
@@ -42,7 +50,5 @@ export default function TradingViewChart({ symbol }: TradingViewChartProps) {
     };
   }, [symbol]);
 
-  return (
-    <div className="w-full h-full min-h-[450px]" ref={containerRef} />
-  );
+  return <div className={`w-full ${height}`} ref={containerRef} />;
 }
