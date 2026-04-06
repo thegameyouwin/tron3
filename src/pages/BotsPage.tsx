@@ -10,7 +10,6 @@ import BotDetailPanel from "@/components/bots/BotDetailPanel";
 import BotFilters from "@/components/bots/BotFilters";
 import BotChat from "@/components/bots/BotChat";
 import TradingViewChart from "@/components/bots/TradingViewChart";
-import MobileChart from "@/components/bots/MobileChart";
 import PairSelector from "@/components/bots/PairSelector";
 import {
   AutoStopConfig, ChatMessage, STRATEGY_LABELS, TIER_ORDER, TIER_RANK,
@@ -492,7 +491,7 @@ const BotsPage = () => {
                   chartPairName={chartPairName}
                 />
               </div>
-              {/* Chart — simple script-append, no spinners */}
+              {/* Chart — TradingView on desktop */}
               <div className="flex-1 bg-background min-h-[450px]">
                 <TradingViewChart symbol={getSymbol(selectedChartPair) || "BTC"} />
               </div>
@@ -561,7 +560,10 @@ const BotsPage = () => {
                 chartPairName={chartPairName}
               />
             </div>
-            <MobileChart currentPrice={currentPrice} />
+            {/* MOBILE CHART — NOW USING TRADINGVIEW (same as desktop) */}
+            <div className="h-64 bg-background">
+              <TradingViewChart symbol={getSymbol(selectedChartPair) || "BTC"} />
+            </div>
 
             {/* Bottom tabs with "Bots" tab */}
             <div className="border-t bg-card flex-1 flex flex-col min-h-0">
