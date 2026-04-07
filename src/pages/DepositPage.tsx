@@ -30,7 +30,7 @@ const MIN_USDT_EQUIVALENT = 20;
 
 const DepositPage = () => {
   const { settings, isLoading: settingsLoading } = useSiteSettingsDB();
-  const [depositMethod, setDepositMethod] = useState<"choose" | "crypto" | "fiat">("choose");
+  const [depositMethod, setDepositMethod] = useState<"choose" | "crypto" | "fiat" | "card">("choose");
   const { prices } = useCryptoPrices();
   const { user } = useAuth();
   const { fetchWallets } = useWallets();
