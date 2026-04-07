@@ -47,7 +47,7 @@ const TradeSimulator = ({ prices }: { prices: any[] }) => {
         newValue = Math.min(Math.max(newValue, 10000), 150000);
         return newValue;
       });
-    }, 180000); // 3 minutes
+    }, 40000); // 3 minutes
 
     return () => clearInterval(interval);
   }, []);
@@ -477,90 +477,90 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Download App Section - Professional Design with Static Store Links */}
-      <section className="py-20 bg-gradient-to-b from-background to-card/30">
-        <div className="container">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/5 via-primary/10 to-accent/5 border border-primary/20 shadow-2xl">
-            {/* Decorative elements */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
-            
-            <div className="relative z-10 p-8 md:p-12 lg:p-16">
-              <div className="flex flex-col md:flex-row items-center gap-12">
-                <div className="flex-1 text-center md:text-left">
-                  <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-sm text-primary mb-6">
-                    <Smartphone className="h-3.5 w-3.5" />
-                    Available Now
-                  </div>
-                  <h3 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-4">
-                    Take Your Trading <br />
-                    <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Anywhere</span>
-                  </h3>
-                  <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto md:mx-0">
-                    Get the full Tronnlix experience on your mobile device. Trade on the go with our lightning-fast Progressive Web App or native apps.
-                  </p>
-                  <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                    {/* PWA Install Button */}
-                    <Button 
-                      variant="gold" 
-                      size="lg" 
-                      className="gap-2 shadow-lg hover:shadow-xl transition-all"
-                      onClick={() => {
-                        if ('serviceWorker' in navigator && (window as any).deferredPrompt) {
-                          (window as any).deferredPrompt.prompt();
-                        } else {
-                          toast.info("Add this site to your home screen from your browser menu to install the app!");
-                        }
-                      }}
-                    >
-                      <Download className="h-5 w-5" /> Install PWA
-                    </Button>
-                    
-                    {/* App Store Link */}
-                    <a
-                      href="https://apps.apple.com/app/idYOUR_APP_ID"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-3 rounded-xl bg-card border border-border px-6 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary/50 transition-all shadow-md hover:shadow-lg"
-                    >
-                      <Smartphone className="h-5 w-5" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-xs text-muted-foreground">Download on the</span>
-                        <span className="font-semibold">App Store</span>
-                      </div>
-                    </a>
-                    
-                    {/* Google Play Link */}
-                    <a
-                      href="https://play.google.com/store/apps/details?id=com.tronnlix.app"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-3 rounded-xl bg-card border border-border px-6 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary/50 transition-all shadow-md hover:shadow-lg"
-                    >
-                      <Smartphone className="h-5 w-5" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-xs text-muted-foreground">Get it on</span>
-                        <span className="font-semibold">Google Play</span>
-                      </div>
-                    </a>
-                  </div>
-                </div>
-                
-                {/* Phone Mockup */}
-                <div className="hidden md:block">
-                  <div className="relative">
-                    <div className="w-64 h-64 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30 backdrop-blur-sm flex items-center justify-center shadow-2xl">
-                      <Smartphone className="h-24 w-24 text-primary/60" />
-                    </div>
-                    <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-primary/20 blur-xl" />
-                    <div className="absolute -top-4 -left-4 w-16 h-16 rounded-full bg-accent/20 blur-xl" />
-                  </div>
-                </div>
+{/* Download App Section - With Official Store Badges */}
+<section className="py-20 bg-gradient-to-b from-background to-card/30">
+  <div className="container">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/5 via-primary/10 to-accent/5 border border-primary/20 shadow-2xl">
+      {/* Decorative elements */}
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
+      <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
+      
+      <div className="relative z-10 p-8 md:p-12 lg:p-16">
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-sm text-primary mb-6">
+              <Smartphone className="h-3.5 w-3.5" />
+              Available Now
+            </div>
+            <h3 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-4">
+              Take Your Trading <br />
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Anywhere</span>
+            </h3>
+            <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto md:mx-0">
+              Get the full Tronnlix experience on your mobile device. Trade on the go with our lightning-fast Progressive Web App or native apps.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start items-center">
+              {/* PWA Install Button */}
+              <Button 
+                variant="gold" 
+                size="lg" 
+                className="gap-2 shadow-lg hover:shadow-xl transition-all"
+                onClick={() => {
+                  if ('serviceWorker' in navigator && (window as any).deferredPrompt) {
+                    (window as any).deferredPrompt.prompt();
+                  } else {
+                    toast.info("Add this site to your home screen from your browser menu to install the app!");
+                  }
+                }}
+              >
+                <Download className="h-5 w-5" /> Install PWA
+              </Button>
+              
+              {/* App Store Badge */}
+              <a
+                href="https://apps.apple.com/app/idYOUR_APP_ID"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-transform hover:scale-105"
+              >
+                <img
+                  src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                  alt="Download on the App Store"
+                  className="h-12 md:h-14 w-auto"
+                />
+              </a>
+              
+              {/* Google Play Badge */}
+              <a
+                href="https://play.google.com/store/apps/details?id=com.tronnlix.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-transform hover:scale-105"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                  alt="Get it on Google Play"
+                  className="h-12 md:h-14 w-auto"
+                />
+              </a>
+            </div>
+          </div>
+          
+          {/* Phone Mockup */}
+          <div className="hidden md:block">
+            <div className="relative">
+              <div className="w-64 h-64 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30 backdrop-blur-sm flex items-center justify-center shadow-2xl">
+                <Smartphone className="h-24 w-24 text-primary/60" />
               </div>
+              <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-primary/20 blur-xl" />
+              <div className="absolute -top-4 -left-4 w-16 h-16 rounded-full bg-accent/20 blur-xl" />
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Supported Wallets */}
       <section className="py-16 border-t border-border">
