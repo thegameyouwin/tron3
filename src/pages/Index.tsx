@@ -16,12 +16,43 @@ const HERO_COINS = ["bitcoin", "ethereum", "tether", "binancecoin", "chainlink"]
 
 const anonUsers = ["whale_93", "Trader_8x2k", "anon_7fG", "degen_42", "sniper_0x", "moon_lfg", "alpha_v3", "hodl_xx", "bot_delta", "quant_77", "ape_in", "rekt_0", "ser_gm", "ngmi_22", "chad_88"];
 
-// Live Trade Simulator
+// Helper to format large numbers (e.g., 2.4B)
+const formatLargeNumber = (num: number): string => {
+  if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+  if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+  return num.toLocaleString();
+};
+
+// Live Trade Simulator with Active Users and $2.4B Cumulative PNL
 const TradeSimulator = ({ prices }: { prices: any[] }) => {
   const [trades, setTrades] = useState<any[]>([]);
   const tradesRef = useRef<any[]>([]);
-  const cumulativePNLRef = useRef(0);
+  // Start cumulative PNL at ~2.4 Billion USD
+  const cumulativePNLRef = useRef(2_400_000_000);
+  
+  // Active users state (minimum 10k)
+  const [activeUsers, setActiveUsers] = useState<number>(() => {
+    // Random starting value between 12,000 and 28,000
+    return Math.floor(Math.random() * (28000 - 12000 + 1) + 12000);
+  });
 
+  // Update active users every 3 minutes (180,000 ms)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveUsers(prev => {
+        // Random change between -8% and +12% of current value
+        const changePercent = (Math.random() * 20) - 8; // -8% to +12%
+        let newValue = Math.floor(prev * (1 + changePercent / 100));
+        // Clamp between 10,000 and 150,000 (reasonable range)
+        newValue = Math.min(Math.max(newValue, 10000), 150000);
+        return newValue;
+      });
+    }, 180000); // 3 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Simulate trades
   useEffect(() => {
     if (prices.length === 0) return;
     const interval = setInterval(() => {
@@ -31,6 +62,7 @@ const TradeSimulator = ({ prices }: { prices: any[] }) => {
       const spread = (Math.random() - 0.5) * 0.002 * coin.current_price;
       const price = coin.current_price + spread;
       const amount = (0.001 + Math.random() * 2).toFixed(4);
+      // PNL remains realistic but relative to trade size
       const pnl = (Math.random() - 0.45) * Number(amount) * price * 0.01;
       cumulativePNLRef.current += pnl;
       const trade = {
@@ -52,12 +84,13 @@ const TradeSimulator = ({ prices }: { prices: any[] }) => {
     return () => clearInterval(interval);
   }, [prices]);
 
-  if (trades.length === 0) return null;
+  // Determine current cumulative PNL to display (fallback to initial if no trades yet)
+  const currentCumulativePNL = trades.length > 0 ? trades[0].cumulativePNL : cumulativePNLRef.current;
 
   return (
     <section className="py-12">
       <div className="container">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
             <h2 className="text-xl font-display font-bold text-foreground">Live Trades</h2>
@@ -66,11 +99,18 @@ const TradeSimulator = ({ prices }: { prices: any[] }) => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-profit" />
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Cumulative PNL:</span>
-            <span className={`font-bold tabular-nums ${trades[0]?.cumulativePNL >= 0 ? "text-profit" : "text-loss"}`}>
-              {trades[0]?.cumulativePNL >= 0 ? "+" : ""}${trades[0]?.cumulativePNL.toFixed(2)}
-            </span>
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
+              <Users className="h-3.5 w-3.5 text-primary" />
+              <span className="text-muted-foreground">Active Users:</span>
+              <span className="font-bold tabular-nums text-foreground">{activeUsers.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Cumulative PNL:</span>
+              <span className={`font-bold tabular-nums text-sm sm:text-base ${currentCumulativePNL >= 0 ? "text-profit" : "text-loss"}`}>
+                ${formatLargeNumber(currentCumulativePNL)}
+              </span>
+            </div>
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -86,33 +126,39 @@ const TradeSimulator = ({ prices }: { prices: any[] }) => {
           {/* Scrollable table body */}
           <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
             <div className="min-w-[600px] sm:min-w-full">
-              {trades.map((t, i) => (
-                <motion.div
-                  key={t.id}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className={`grid grid-cols-12 gap-4 px-4 py-2 text-xs border-b border-border/30 ${i === 0 ? "bg-primary/5" : ""}`}
-                >
-                  <div className="col-span-2 text-muted-foreground/70 truncate">{t.user}</div>
-                  <div className="col-span-2 flex items-center gap-2">
-                    <img src={t.image} alt={t.symbol} className="w-4 h-4 rounded-full" />
-                    <span className="font-medium text-foreground">{t.symbol}/USDT</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.side === "buy" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"}`}>
-                      {t.side === "buy" ? "LONG" : "SHORT"}
-                    </span>
-                  </div>
-                  <div className={`col-span-2 text-right font-medium tabular-nums ${t.side === "buy" ? "text-profit" : "text-loss"}`}>
-                    ${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="col-span-2 text-right text-muted-foreground tabular-nums">{t.amount}</div>
-                  <div className="col-span-2 text-right text-muted-foreground tabular-nums">
-                    {t.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </div>
-                </motion.div>
-              ))}
+              {trades.length === 0 ? (
+                <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  Waiting for live trades...
+                </div>
+              ) : (
+                trades.map((t, i) => (
+                  <motion.div
+                    key={t.id}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className={`grid grid-cols-12 gap-4 px-4 py-2 text-xs border-b border-border/30 ${i === 0 ? "bg-primary/5" : ""}`}
+                  >
+                    <div className="col-span-2 text-muted-foreground/70 truncate">{t.user}</div>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <img src={t.image} alt={t.symbol} className="w-4 h-4 rounded-full" />
+                      <span className="font-medium text-foreground">{t.symbol}/USDT</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.side === "buy" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"}`}>
+                        {t.side === "buy" ? "LONG" : "SHORT"}
+                      </span>
+                    </div>
+                    <div className={`col-span-2 text-right font-medium tabular-nums ${t.side === "buy" ? "text-profit" : "text-loss"}`}>
+                      ${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="col-span-2 text-right text-muted-foreground tabular-nums">{t.amount}</div>
+                    <div className="col-span-2 text-right text-muted-foreground tabular-nums">
+                      {t.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </div>
