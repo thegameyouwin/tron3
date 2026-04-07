@@ -247,6 +247,11 @@ const DepositPage = () => {
           <DepositMethodSelector onSelect={(method) => setDepositMethod(method)} />
         )}
 
+        {/* Card Payment */}
+        {depositMethod === "card" && (
+          <CardDepositForm onBack={() => setDepositMethod("choose")} />
+        )}
+
         {/* M-PESA / Fiat */}
         {depositMethod === "fiat" && (
           <MpesaDepositForm onBack={() => setDepositMethod("choose")} />
