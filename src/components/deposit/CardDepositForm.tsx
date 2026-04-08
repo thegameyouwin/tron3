@@ -96,6 +96,8 @@ const CardDepositForm = ({ onBack }: Props) => {
     );
   }
 
+  const displayAmount = Number(amount) || 0;
+
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -210,7 +212,7 @@ const CardDepositForm = ({ onBack }: Props) => {
         {submitting ? (
           <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
         ) : (
-          `Deposit $${Number(amount) || 0}`
+          `Deposit $${displayAmount}`
         )}
       </Button>
     </div>
