@@ -124,6 +124,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verifications: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       kyc_documents: {
         Row: {
           created_at: string
@@ -327,6 +357,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
+          email_verified: boolean | null
           id: string
           kyc_status: string | null
           phone: string | null
@@ -342,6 +373,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          email_verified?: boolean | null
           id?: string
           kyc_status?: string | null
           phone?: string | null
@@ -357,6 +389,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          email_verified?: boolean | null
           id?: string
           kyc_status?: string | null
           phone?: string | null
