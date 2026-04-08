@@ -431,6 +431,7 @@ const AdminPage = () => {
     { key: "roles", label: "Roles", icon: Shield },
     { key: "security_logs", label: "Security", icon: Lock },
     { key: "announcements", label: "Announce", icon: Bell },
+    { key: "email_tool", label: "Email", icon: Mail },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
