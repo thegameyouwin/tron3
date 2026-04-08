@@ -5,9 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import VerifiedRoute from "@/components/VerifiedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
+import EmailVerificationPage from "./pages/EmailVerificationPage.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import CryptoWalletPage from "./pages/CryptoWalletPage.tsx";
 import FiatWalletPage from "./pages/FiatWalletPage.tsx";
@@ -42,25 +44,26 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/verify-email" element={<ProtectedRoute><EmailVerificationPage /></ProtectedRoute>} />
             <Route path="/coin/:coinId" element={<CoinDetailPage />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/crypto-wallet" element={<ProtectedRoute><CryptoWalletPage /></ProtectedRoute>} />
-            <Route path="/fiat-wallet" element={<ProtectedRoute><FiatWalletPage /></ProtectedRoute>} />
-            <Route path="/p2p" element={<ProtectedRoute><P2PMarketPage /></ProtectedRoute>} />
-            <Route path="/markets" element={<ProtectedRoute><MarketsPage /></ProtectedRoute>} />
-            <Route path="/spot-trading" element={<ProtectedRoute><SpotTradingPage /></ProtectedRoute>} />
-            <Route path="/futures" element={<ProtectedRoute><FuturesPage /></ProtectedRoute>} />
-            <Route path="/bots" element={<ProtectedRoute><BotsPage /></ProtectedRoute>} />
-            <Route path="/earn" element={<ProtectedRoute><EarnStakePage /></ProtectedRoute>} />
-            <Route path="/referral" element={<ProtectedRoute><ReferralPage /></ProtectedRoute>} />
-            <Route path="/converter" element={<ProtectedRoute><ConverterPage /></ProtectedRoute>} />
-            <Route path="/deposit" element={<ProtectedRoute><DepositPage /></ProtectedRoute>} />
-            <Route path="/withdraw" element={<ProtectedRoute><WithdrawPage /></ProtectedRoute>} />
-            <Route path="/transactions" element={<ProtectedRoute><TransactionHistoryPage /></ProtectedRoute>} />
-            <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<VerifiedRoute><Dashboard /></VerifiedRoute>} />
+            <Route path="/crypto-wallet" element={<VerifiedRoute><CryptoWalletPage /></VerifiedRoute>} />
+            <Route path="/fiat-wallet" element={<VerifiedRoute><FiatWalletPage /></VerifiedRoute>} />
+            <Route path="/p2p" element={<VerifiedRoute><P2PMarketPage /></VerifiedRoute>} />
+            <Route path="/markets" element={<VerifiedRoute><MarketsPage /></VerifiedRoute>} />
+            <Route path="/spot-trading" element={<VerifiedRoute><SpotTradingPage /></VerifiedRoute>} />
+            <Route path="/futures" element={<VerifiedRoute><FuturesPage /></VerifiedRoute>} />
+            <Route path="/bots" element={<VerifiedRoute><BotsPage /></VerifiedRoute>} />
+            <Route path="/earn" element={<VerifiedRoute><EarnStakePage /></VerifiedRoute>} />
+            <Route path="/referral" element={<VerifiedRoute><ReferralPage /></VerifiedRoute>} />
+            <Route path="/converter" element={<VerifiedRoute><ConverterPage /></VerifiedRoute>} />
+            <Route path="/deposit" element={<VerifiedRoute><DepositPage /></VerifiedRoute>} />
+            <Route path="/withdraw" element={<VerifiedRoute><WithdrawPage /></VerifiedRoute>} />
+            <Route path="/transactions" element={<VerifiedRoute><TransactionHistoryPage /></VerifiedRoute>} />
+            <Route path="/payment-methods" element={<VerifiedRoute><PaymentMethodsPage /></VerifiedRoute>} />
             <Route path="/kyc" element={<ProtectedRoute><KYCPage /></ProtectedRoute>} />
-            <Route path="/security" element={<ProtectedRoute><SecurityPage /></ProtectedRoute>} />
-            <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+            <Route path="/security" element={<VerifiedRoute><SecurityPage /></VerifiedRoute>} />
+            <Route path="/help" element={<VerifiedRoute><HelpPage /></VerifiedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

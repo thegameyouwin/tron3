@@ -47,7 +47,8 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
-        toast.success(t("auth.checkEmail"));
+        toast.success("Account created! Please verify your email.");
+        navigate("/verify-email");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
