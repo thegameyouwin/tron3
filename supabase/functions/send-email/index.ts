@@ -106,6 +106,11 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
         <p style="color:#9ca3af;font-size:12px;text-align:center;">© ${new Date().getFullYear()} Tronnlix</p>
       </div>`,
   }),
+
+  custom: (data) => ({
+    subject: data.subject || "Message from Tronnlix",
+    html: data.html || `<p>${data.message || "No content"}</p>`,
+  }),
 };
 
 serve(async (req) => {

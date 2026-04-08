@@ -36,7 +36,7 @@ const ALL_CRYPTOS = [
   { id: "stellar", name: "Stellar", symbol: "XLM" },
 ];
 
-type Tab = "overview" | "transactions" | "wallets" | "bots" | "users" | "kyc" | "roles" | "security_logs" | "announcements" | "settings";
+type Tab = "overview" | "transactions" | "wallets" | "bots" | "users" | "kyc" | "roles" | "security_logs" | "announcements" | "email_tool" | "settings";
 
 const formatNumber = (num: number) => {
   if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
@@ -158,6 +158,101 @@ const SecurityLogsTab = () => {
   );
 };
 
+// ─── Email Tool Tab ───
+const EmailToolTab = () => {
+  const [recipients, setRecipients] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentLog, setSentLog] = useState<{to: string; status: string; time: string}[]>([]);
+
+  const handleSend = async () => {
+    if (!recipients.trim() || !subject.trim() || !body.trim()) return toast.error("Fill in all fields");
+    const emails = recipients.split(/[\n,;]+/).map(e => e.trim()).filter(e => e && e.includes("@"));
+    if (emails.length === 0) return toast.error("No valid email addresses");
+    setSending(true);
+    const results: typeof sentLog = [];
+    for (const to of emails) {
+      try {
+        const { data, error } = await supabase.functions.invoke("send-email", {
+          body: { template: "custom", to, data: { subject, html: body } },
+        });
+        results.push({ to, status: data?.sent ? "✅ Sent" : `❌ ${data?.reason || error?.message || "Failed"}`, time: new Date().toLocaleTimeString() });
+      } catch (err: any) {
+        results.push({ to, status: `❌ ${err.message}`, time: new Date().toLocaleTimeString() });
+      }
+    }
+    setSentLog(prev => [...results, ...prev]);
+    setSending(false);
+    const successCount = results.filter(r => r.status.startsWith("✅")).length;
+    toast.success(`Sent ${successCount}/${emails.length} emails`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-display font-bold text-foreground">Email Tool</h2>
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><Mail className="h-4 w-4" /> Compose Email</h3>
+        <p className="text-xs text-muted-foreground">Send emails via Resend from <span className="font-mono text-foreground">support@tronnlix.com</span>. Enter one or multiple email addresses separated by commas or new lines.</p>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">Recipients</label>
+          <textarea value={recipients} onChange={e => setRecipients(e.target.value)} placeholder={"user1@example.com\nuser2@example.com"} className={inputClass + " h-20 resize-none py-3"} />
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">Subject</label>
+          <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject..." className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">Body (HTML or plain text)</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your email content here... HTML is supported." className={inputClass + " h-40 resize-none py-3 font-mono text-xs"} />
+        </div>
+        <div className="flex gap-3">
+          <Button variant="gold" onClick={handleSend} disabled={sending} className="gap-2">
+            <Mail className="h-3.5 w-3.5" /> {sending ? "Sending..." : "Send Email"}
+          </Button>
+          <Button variant="outline" onClick={() => { setRecipients(""); setSubject(""); setBody(""); }}>Clear</Button>
+        </div>
+      </div>
+
+      {/* Quick Templates */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4" /> Quick Templates</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[
+            { label: "Welcome", subj: "Welcome to Tronnlix!", bodyTpl: '<h2>Welcome to Tronnlix!</h2><p>Thank you for joining us. Start by making your first deposit to unlock all features.</p><p>Best regards,<br/>Tronnlix Team</p>' },
+            { label: "Deposit Reminder", subj: "Don't forget to deposit!", bodyTpl: '<h2>Your Account is Ready</h2><p>Hi there, we noticed you haven\'t made your first deposit yet. Fund your account to start trading with Tronnlix.</p><p>Minimum deposit: $30 USD.</p>' },
+            { label: "Maintenance", subj: "Scheduled Maintenance Notice", bodyTpl: '<h2>Scheduled Maintenance</h2><p>We will be performing scheduled maintenance. During this time, some services may be temporarily unavailable.</p><p>Thank you for your patience.</p>' },
+          ].map(t => (
+            <button key={t.label} onClick={() => { setSubject(t.subj); setBody(t.bodyTpl); }} className="text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all">
+              <p className="text-sm font-medium text-foreground">{t.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.subj}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sent Log */}
+      {sentLog.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-foreground">Send Log</h3>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => setSentLog([])}>Clear Log</Button>
+          </div>
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {sentLog.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-secondary/30">
+                <span className="font-mono text-muted-foreground">{entry.to}</span>
+                <span>{entry.status}</span>
+                <span className="text-muted-foreground">{entry.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Announcements Tab ───
 const AnnouncementsTab = () => {
   const [title, setTitle] = useState("");
@@ -166,7 +261,6 @@ const AnnouncementsTab = () => {
 
   const handleSend = () => {
     if (!title || !message) return toast.error("Fill in title and message");
-    // In a real implementation, this would save to a DB table or send notifications
     toast.success(`Announcement "${title}" sent to all users!`);
     setTitle("");
     setMessage("");
@@ -200,8 +294,6 @@ const AnnouncementsTab = () => {
           <Button variant="outline" onClick={() => { setTitle(""); setMessage(""); }}>Clear</Button>
         </div>
       </div>
-
-      {/* Preview */}
       {title && (
         <div className="bg-card border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-foreground mb-3">Preview</h3>
@@ -339,6 +431,7 @@ const AdminPage = () => {
     { key: "roles", label: "Roles", icon: Shield },
     { key: "security_logs", label: "Security", icon: Lock },
     { key: "announcements", label: "Announce", icon: Bell },
+    { key: "email_tool", label: "Email", icon: Mail },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -497,6 +590,7 @@ const AdminPage = () => {
         {tab === "roles" && <RolesManagementTab />}
         {tab === "security_logs" && <SecurityLogsTab />}
         {tab === "announcements" && <AnnouncementsTab />}
+        {tab === "email_tool" && <EmailToolTab />}
 
         {/* ─── SETTINGS ─── */}
         {tab === "settings" && (
