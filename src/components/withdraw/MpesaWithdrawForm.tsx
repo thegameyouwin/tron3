@@ -32,60 +32,33 @@ export default function MpesaWithdrawForm({ onBack }: Props) {
     if (!user || !canSubmit) return;
     setStep("confirming");
     try {
-      // Deduct from USDT wallet
-      const { data: wallet } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user.id)
-        .or("crypto_id.eq.tether,crypto_id.eq.usdt")
-        .limit(1)
-        .maybeSingle();
-
-      if (!wallet || Number(wallet.balance) < usdEquivalent) {
-        toast.error("Insufficient USDT balance");
-        setStep("form");
-        return;
-      }
-
-      await supabase
-        .from("wallets")
-        .update({ balance: Number(wallet.balance) - usdEquivalent })
-        .eq("id", wallet.id);
-
-      // Create withdrawal transaction
-      const { data: tx, error } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: user.id,
-          type: "withdrawal",
-          crypto_id: "tether",
-          amount: usdEquivalent,
-          usd_amount: usdEquivalent,
-          wallet_address: phone.replace(/\s/g, ""),
-          network: "M-PESA",
-          status: "pending",
-          notes: `M-PESA withdrawal KES ${kes}`,
-        })
-        .select()
-        .single();
+      // Use edge function instead of direct DB access
+      const { data, error } = await supabase.functions.invoke("process-withdraw", {
+        body: {
+          method: "mpesa",
+          phone: phone.replace(/\s/g, ""),
+          amount_kes: kes,
+          amount_usd: usdEquivalent,
+        },
+      });
 
       if (error) throw error;
-      setTxRef(tx.id);
+      if (data?.error) throw new Error(data.error);
 
-      // Invoke Kopo Kopo disbursement (future edge function)
-      // For now, the transaction stays pending for admin approval
+      setTxRef(data.transaction_id || "");
       toast.success("Withdrawal request submitted!");
       setStep("pending");
       fetchWallets();
 
-      // Poll for status
+      // Poll for admin approval
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
+        if (!data.transaction_id) { clearInterval(poll); return; }
         const { data: updated } = await supabase
           .from("transactions")
           .select("status")
-          .eq("id", tx.id)
+          .eq("id", data.transaction_id)
           .maybeSingle();
         if (updated?.status === "completed") {
           clearInterval(poll);
@@ -190,12 +163,8 @@ export default function MpesaWithdrawForm({ onBack }: Props) {
           max={MAX_KES}
         />
         <div className="flex justify-between mt-1">
-          <p className="text-xs text-muted-foreground">
-            ≈ ${usdEquivalent.toFixed(2)} USDT
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Balance: ${usdtBalance.toFixed(2)} USDT
-          </p>
+          <p className="text-xs text-muted-foreground">≈ ${usdEquivalent.toFixed(2)} USDT</p>
+          <p className="text-xs text-muted-foreground">Balance: ${usdtBalance.toFixed(2)} USDT</p>
         </div>
       </div>
 
