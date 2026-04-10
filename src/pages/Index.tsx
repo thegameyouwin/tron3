@@ -6,11 +6,12 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, ArrowRight, Flame, Activity, Shield, Zap, Globe, Users, BarChart3, Smartphone, Download } from "lucide-react";
+import { Search, TrendingUp, ArrowRight, Flame, Activity, Shield, Zap, Globe, Users, BarChart3, Smartphone, Download, Mail, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const HERO_COINS = ["bitcoin", "ethereum", "tether", "binancecoin", "chainlink"];
 
