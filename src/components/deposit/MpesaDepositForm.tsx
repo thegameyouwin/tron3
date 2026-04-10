@@ -93,7 +93,12 @@ const MpesaDepositForm = ({ onBack }: Props) => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to parse the error body for details
+        const errBody = (error as any)?.context?.body;
+        const errMsg = errBody?.error || errBody?.details || error.message || "Failed to initiate M-PESA payment";
+        throw new Error(errMsg);
+      }
       if (data?.error) throw new Error(data.error);
 
       setPaymentRef(data?.reference || data?.payment_id || "");
@@ -102,7 +107,14 @@ const MpesaDepositForm = ({ onBack }: Props) => {
       startPolling();
     } catch (err: any) {
       console.error("M-PESA error:", err);
-      toast.error(err.message || "Failed to initiate M-PESA payment");
+      const msg = err.message || "Failed to initiate M-PESA payment";
+      if (msg.includes("not configured")) {
+        toast.error("M-PESA is not configured yet. Please contact support.");
+      } else if (msg.includes("OAuth") || msg.includes("authenticate")) {
+        toast.error("Payment provider authentication failed. Please try again later.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
