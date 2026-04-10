@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FeedbackBanner from "@/components/FeedbackSystem";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -271,6 +272,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         <main className="flex-1 overflow-y-auto">
+          <div className="px-4 pt-4 md:px-6 md:pt-4">
+            <FeedbackBanner />
+          </div>
           {children}
         </main>
       </div>
