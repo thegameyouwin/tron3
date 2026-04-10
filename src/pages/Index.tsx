@@ -65,7 +65,70 @@ const MarketActivity = ({ prices }: { prices: any[] }) => {
   );
 };
 
-// Stats Counter Component (unchanged)
+// Newsletter Section
+const NewsletterSection = () => {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("newsletter-subscribe", {
+        body: { email },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Subscribed! Check your email for confirmation.");
+      setEmail("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to subscribe");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="py-16 bg-gradient-to-b from-card/30 to-transparent">
+      <div className="container max-w-xl text-center">
+        <Mail className="h-10 w-10 text-primary mx-auto mb-4" />
+        <h2 className="text-2xl font-display font-bold mb-2">
+          Stay <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Updated</span>
+        </h2>
+        <p className="text-muted-foreground text-sm mb-6">
+          Get the latest market insights and platform updates delivered to your inbox.
+        </p>
+        <div className="flex gap-2 max-w-md mx-auto">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            autoComplete="email"
+            className="flex-1 h-12 px-4 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+          />
+          <Button
+            variant="gold"
+            className="h-12 px-6"
+            onClick={handleSubscribe}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-3">
+          No spam. Unsubscribe anytime.
+        </p>
+      </div>
+    </section>
+  );
+};
+
+// Stats Counter Component
 const StatsCounter = ({ value, label, suffix = "" }: { value: number; label: string; suffix?: string }) => {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
