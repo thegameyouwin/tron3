@@ -440,7 +440,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Supported Wallets (unchanged) */}
+      {/* Supported Wallets */}
       <section className="py-16 border-t border-border">
         <div className="container text-center">
           <h2 className="text-2xl font-display font-bold mb-2">
@@ -461,8 +461,10 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Newsletter Section */}
+      <NewsletterSection />
 
-      {/* Final CTA (unchanged) */}
+      {/* Final CTA */}
       <section className="py-24">
         <div className="container text-center">
           <motion.div
